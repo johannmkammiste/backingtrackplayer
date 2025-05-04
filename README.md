@@ -18,7 +18,7 @@ Follow these steps to get the application running directly from the source code 
 1.  **Clone the Repository:**
     Open your terminal or command prompt and run:
     ```bash
-    git clone backingtrackplayer https://github.com/johannmkammiste/backingtrackplayer
+    git clone https://github.com/johannmkammiste/backingtrackplayer backingtrackplayer
     cd backingtrackplayer
     ```
 
@@ -70,7 +70,7 @@ This project was mostly designed with a Raspberry Pi in mind, so here are the in
 1. **Install Raspberry Pi OS with the Desktop and do the initial setup**
    The author used a Raspberrry Pi 3 A+ with Raspberry Pi OS 64-bit Bookworm.
 2. **Update your Raspberry Pi and install required programs**
-   First update and install the browser and install unclutter.
+   First update and install the browser and unclutter.
     ```bash
     sudo apt update && sudo apt upgrade -y
     sudo apt install --no-install-recommends chromium-browser
@@ -78,8 +78,10 @@ This project was mostly designed with a Raspberry Pi in mind, so here are the in
     ```
    Then install the program.
    ```bash
-   git clone backingtrackplayer https://github.com/johannmkammiste/backingtrackplayer
+   git clone https://github.com/johannmkammiste/backingtrackplayer backingtrackplayer
    cd backingtrackplayer
+   python -m venv venv
+   source venv/bin/activate
    pip install -r requirements.txt
    ```
     
