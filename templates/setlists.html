@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block sidebar %}
+<div class="setlists-sidebar">
+    <button id="add-setlist-btn" class="add-setlist-button">
+        ＋ Add New Setlist
+    </button>
+    <div class="setlists-list">
+        {% for setlist in setlists %}
+        <div class="setlist-item" data-setlist-id="{{ setlist.id }}">
+            <span class="setlist-name">{{ setlist.name }}</span>
+            <span class="song-count">{{ setlist.song_ids|length }} songs</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="setlist-editor" id="setlist-editor">
+    <div class="empty-state" id="empty-state">
+        <p>Select a setlist from the list or create a new one</p>
+    </div>
+
+    <div class="setlist-form" id="setlist-form" style="display: none;">
+        <div class="setlist-header">
+            <h2 id="setlist-title">New Setlist</h2>
+            <div class="setlist-meta">
+                <div class="meta-row">
+                    <label>Setlist Name:</label>
+                    <input type="text" id="setlist-name" class="setlist-name-input">
+                </div>
+            </div>
+        </div>
+        <div class="setlist-actions">
+            <button id="save-setlist" class="action-button save">Save Setlist</button>
+            <button id="delete-setlist" class="action-button delete">Delete Setlist</button>
+            <button id="play-setlist" class="action-button play">Play Setlist</button>
+        </div>
+        <div class="songs-section">
+            <h3>Songs in Setlist</h3>
+            <div class="setlist-songs">
+                <h4>Setlist Order</h4>
+                <div class="songs-list" id="setlist-songs-list">
+                    <!-- Setlist songs will be added here dynamically -->
+                </div>
+            </div>
+
+            <div class="available-songs" id="available-songs">
+                <h4>Available Songs</h4>
+                <div class="songs-selector" id="songs-selector">
+                    <!-- Songs will be added here dynamically -->
+                </div>
+                <button id="add-song-to-setlist" class="action-button add">Add Selected</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/input-control.js') }}"></script>
+{% endblock %}

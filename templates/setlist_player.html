@@ -1,0 +1,44 @@
+{# File: backing track player/templates/setlist_player.html #}
+{% extends "base.html" %}
+
+{% block sidebar %}
+<div class="setlist-sidebar">
+    <h2 id="setlist-player-title">{{ setlist.name }}</h2>
+    <div class="songs-list" id="setlist-songs">
+        {% for song in songs %}
+        {# *** Add data-duration attribute *** #}
+        <div class="song-item" data-song-id="{{ song.id }}" data-duration="{{ song.duration }}">
+            <div class="song-name">{{ song.name }}</div>
+            {# *** Display duration initially in details (optional) *** #}
+            <div class="song-details">{{ song.tempo }} BPM / {{ song.duration|format_duration }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="player-container">
+    <div class="now-playing">
+        <h2 id="current-song-name">No song selected</h2>
+        <div class="song-info">
+            <span id="current-song-bpm">BPM: --</span>
+            {# *** ADDED Timer Display Element *** #}
+            <span id="time-remaining" class="time-display">Time: --:--</span>
+        </div>
+    </div>
+
+    <div class="player-controls">
+        <button id="previous-btn" class="control-btn" title="Previous song">⏮</button>
+        <button id="play-btn" class="control-btn" title="Play">▶ Play</button>
+        <button id="stop-btn" class="control-btn" title="Stop">⏹ Stop</button>
+        <button id="next-btn" class="control-btn" title="Next song">⏭</button>
+    </div>
+
+    <div class="status-indicators">
+        <span id="keyboard-status">Keyboard: Inactive</span>
+        </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/input-control.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,320 @@
+ /* ===== Setlists Page Layout ===== */
+.setlists-sidebar {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    color: #ecf0f1;
+}
+
+.setlist-editor {
+    padding: 30px;
+    height: 100%;
+    overflow-y: auto;
+    color: #ecf0f1;
+}
+
+/* ===== Setlist List Styles ===== */
+.setlists-list {
+    flex: 1;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+.setlist-item {
+    cursor: pointer;
+    padding: 12px 15px;
+    margin: 5px 0;
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.setlist-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.setlist-item.active {
+    background-color: rgba(52, 152, 219, 0.2);
+    border-left: 3px solid #3498db;
+}
+
+.setlist-name {
+    font-weight: 500;
+    color: #ecf0f1;
+}
+
+.song-count {
+    color: #bdc3c7;
+    font-size: 0.85rem;
+}
+
+/* ===== Add Setlist Button ===== */
+.add-setlist-button {
+    padding: 12px;
+    background-color: rgba(241, 196, 15, 0.2);
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.add-setlist-button:hover {
+    background-color: rgba(241, 196, 15, 0.3);
+}
+
+/* ===== Empty State ===== */
+.empty-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #7f8c8d;
+    font-size: 1.1rem;
+}
+
+/* ===== Setlist Form ===== */
+.setlist-form {
+    display: none;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.setlist-header h2 {
+    color: #f1c40f;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.setlist-meta {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.setlist-name-input {
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.3);
+    color: #ecf0f1;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    font-size: 1rem;
+    flex: 1;
+}
+
+/* ===== Songs Section ===== */
+.songs-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.songs-section h3 {
+    color: #f1c40f;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.available-songs {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.available-songs h4 {
+    margin-bottom: 10px;
+    color: #bdc3c7;
+}
+
+.songs-selector {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.song-selector-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.song-selector-item input {
+    margin-right: 10px;
+}
+
+.song-selector-name {
+    flex: 1;
+}
+
+.setlist-songs {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.setlist-songs h4 {
+    margin-bottom: 10px;
+    color: #bdc3c7;
+}
+
+.setlist-songs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.setlist-song-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.setlist-song-name {
+    flex: 1;
+}
+
+.setlist-song-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.setlist-song-move {
+    cursor: pointer;
+    color: #3498db;
+}
+
+.setlist-song-remove {
+    cursor: pointer;
+    color: #e74c3c;
+}
+
+/* ===== Setlist Actions ===== */
+.setlist-actions {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    gap: 15px;
+}
+
+.action-button {
+    padding: 10px 20px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.action-button.save {
+    background-color: rgba(46, 204, 113, 0.1);
+    color: white;
+    border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.action-button.save:hover {
+    background-color: rgba(46, 204, 113, 0.2);
+}
+
+.action-button.delete {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: white;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.action-button.delete:hover {
+    background-color: rgba(231, 76, 60, 0.2);
+}
+
+.action-button.play {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: white;
+    font-weight: bold;
+    border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+.action-button.play:hover {
+    background-color: rgba(52, 152, 219, 0.2);
+}
+
+.action-button.add {
+    background-color: rgba(155, 89, 182, 0.1);
+    color: #9b59b6;
+    border: 1px solid rgba(155, 89, 182, 0.2);
+}
+
+.action-button.add:hover {
+    background-color: rgba(155, 89, 182, 0.2);
+}
+
+/* ===== Loading State ===== */
+.setlist-form.loading {
+    position: relative;
+    opacity: 0.8;
+}
+
+.setlist-form.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: -15px;
+    margin-top: -15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ===== Success Message ===== */
+.save-success {
+    color: #2ecc71;
+    padding: 10px;
+    text-align: center;
+    margin-top: 15px;
+    background-color: rgba(46, 204, 113, 0.1);
+    border-radius: 4px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Responsive Adjustments ===== */
+@media (max-width: 768px) {
+    .setlist-editor {
+        padding: 20px;
+    }
+
+    .setlist-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .action-button {
+        width: 100%;
+    }
+}

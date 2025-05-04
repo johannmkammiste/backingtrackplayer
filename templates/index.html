@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block sidebar %}
+    <nav>
+        <ul class="nav-menu">
+            <li><a href="{{ url_for('setlists_page') }}" class="nav-link">SETLISTS</a></li>
+            <li><a href="{{ url_for('songs_page') }}" class="nav-link">SONGS</a></li>
+            <li><a href="{{ url_for('settings_page') }}" class="nav-link">SETTINGS</a></li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+{% endblock %}

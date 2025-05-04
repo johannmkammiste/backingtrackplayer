@@ -1,0 +1,154 @@
+/* ===== Player Container ===== */
+.player-container {
+    padding: 30px;
+    height: 100%;
+    overflow-y: auto;
+    color: #ecf0f1;
+}
+
+/* ===== Sidebar Styles ===== */
+.setlist-sidebar {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    color: #ecf0f1;
+}
+
+.setlist-sidebar h2 {
+    color: #f1c40f;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.songs-list {
+    flex: 1;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+.song-item {
+    cursor: pointer;
+    padding: 12px 15px;
+    margin: 5px 0;
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.song-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.song-item.active {
+    background-color: rgba(52, 152, 219, 0.2);
+    border-left: 3px solid #3498db;
+}
+
+.song-name {
+    font-weight: 500;
+    color: #ecf0f1;
+}
+
+.song-details {
+    color: #bdc3c7;
+    font-size: 0.85rem;
+}
+
+/* ===== Now Playing Section ===== */
+.now-playing {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 30px;
+}
+
+.now-playing h2 {
+    color: #f1c40f;
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+}
+
+.song-info {
+    display: flex;
+    gap: 15px;
+    color: #bdc3c7;
+}
+
+/* ===== Player Controls ===== */
+.player-controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.control-btn {
+    padding: 12px 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+}
+
+.control-btn:hover {
+    transform: translateY(-2px);
+}
+
+#play-btn {
+    background-color: #2ecc71;
+}
+
+#play-btn:hover {
+    background-color: #27ae60;
+    box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+}
+
+#stop-btn {
+    background-color: #e74c3c;
+}
+
+#stop-btn:hover {
+    background-color: #c0392b;
+    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+}
+
+#previous-btn,
+#next-btn {
+    background-color: #3498db;
+}
+
+#previous-btn:hover,
+#next-btn:hover {
+    background-color: #2980b9;
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+/* ===== Responsive Adjustments ===== */
+@media (max-width: 768px) {
+    .player-controls {
+        flex-wrap: wrap;
+    }
+
+    .control-btn {
+        flex: 1;
+        min-width: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .setlist-sidebar {
+        padding: 15px;
+    }
+
+    .control-btn {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+}

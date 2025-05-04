@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Live Backing Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/songs.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/setlists.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/setlist_player.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-top-controls">
+                <a href="{{ url_for('index') }}" class="home-button" title="Home">⌂</a>
+                <button id="history-back-btn" class="nav-button" title="Go Back">◀</button>
+                <button id="history-forward-btn" class="nav-button" title="Go Forward">▶</button>
+            </div>
+            {% block sidebar %}{% endblock %}
+        </div>
+        <div class="main-content">
+            <div id="real-time-clock" class="clock-display">--:--:--</div>
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    <div id="notification-container"></div>
+    {% block scripts %}
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% if request.path == '/songs' %}
+        <script src="{{ url_for('static', filename='js/songs.js') }}"></script>
+    {% elif request.path == '/setlists' %}
+        <script src="{{ url_for('static', filename='js/setlists.js') }}"></script>
+    {% elif '/setlists/' in request.path and '/play' in request.path %}
+        <script src="{{ url_for('static', filename='js/setlist_player.js') }}"></script>
+    {% elif request.path == '/settings' %}
+        <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+    {% endif %}
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,100 @@
+/* Styles for Audio Output Mapping Section */
+#audio-output-mappings {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Space between mapping rows */
+    margin-bottom: 20px; /* Space before Add button */
+}
+
+.mapping-row {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between elements in a row */
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.1); /* Slight background for row */
+    border-radius: 4px;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+.mapping-row label {
+    width: auto; /* Adjust label width */
+    margin-right: 5px;
+    color: #bdc3c7;
+    font-size: 0.9em;
+}
+
+.mapping-row .settings-select, /* Device select */
+.mapping-row .settings-input { /* Channel input */
+    flex-grow: 1; /* Allow select/input to grow */
+    min-width: 120px; /* Minimum width */
+}
+
+.mapping-row .channel-input {
+    max-width: 180px; /* Limit width of channel input */
+}
+
+.mapping-row .remove-mapping-btn {
+    padding: 5px 10px;
+    font-size: 0.85em;
+    background-color: rgba(231, 76, 60, 0.1); /* Reddish */
+    color: #e74c3c;
+    border-color: rgba(231, 76, 60, 0.2);
+    margin-left: auto; /* Push remove button to the right */
+}
+.mapping-row .remove-mapping-btn:hover {
+     background-color: rgba(231, 76, 60, 0.2);
+}
+
+
+.settings-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+.settings-actions.main-actions {
+     justify-content: flex-end; /* Align main save button to right */
+     margin-top: 25px;
+}
+
+.settings-button.add {
+     background-color: rgba(46, 204, 113, 0.1);
+     color: #2ecc71;
+     border-color: rgba(46, 204, 113, 0.2);
+}
+.settings-button.add:hover {
+      background-color: rgba(46, 204, 113, 0.2);
+}
+
+/* Status messages for save operations */
+.save-status {
+    margin-left: 15px;
+    font-size: 0.9em;
+    display: none; /* Hidden by default */
+}
+.save-status.success {
+    color: #2ecc71; /* Green */
+}
+.save-status.error {
+    color: #e74c3c; /* Red */
+}
+
+/* Input validation error highlight */
+.settings-input.input-error {
+    border: 1px solid #e74c3c !important;
+    background-color: rgba(231, 76, 60, 0.05);
+}
+
+/* Ensure volume slider elements align */
+#audio-output-section .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+#audio-output-section .volume-slider {
+     flex-grow: 1;
+}
+#audio-output-section .volume-value {
+    min-width: 45px; /* Give volume text space */
+    text-align: right;
+    color: #ecf0f1;
+}

@@ -1,0 +1,13 @@
+{
+  "audio_outputs": [
+    {
+      "device_id": 3,
+      "channels": [
+        1,
+        2
+      ]
+    }
+  ],
+  "volume": 1.0,
+  "sample_rate": 48000
+}
