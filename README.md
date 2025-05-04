@@ -42,7 +42,7 @@ Follow these steps to get the application running directly from the source code 
     pip install -r requirements.txt
     ```
 
-4. ** Running the Application (from Source)
+4. **Running the Application (from Source)**
 
     Once the setup is complete, you can run the Flask development server:
     
@@ -54,11 +54,11 @@ Follow these steps to get the application running directly from the source code 
 
 You can also create an excecutable using pyinstaller.
 
-1. **Install pyinstall
+1. **Install pyinstall**
     ```bash
     pip install pyinstaller
     ```
-2. **Run pyinstaller with the following command:
+2. **Run pyinstaller with the following command:**
    ```bash
    pyinstaller --name BackingTrackPlayer --onefile --add-data "templates:templates" --add-data "static:static" --add-data "data:data" run.py
    ```
@@ -71,7 +71,7 @@ You might want the Backing Track Player server to start automatically when your 
 
 This is the standard and most robust method for managing services on modern Linux distributions (like Ubuntu, Debian, Fedora, CentOS 7+, Arch Linux, etc.).
 
-1.  **Prerequisites:** Ensure you have already followed the **Setup Instructions (Running from Source)** section, so the code is cloned, the virtual environment (`venv`) is created, and dependencies (`requirements.txt`) are installed.
+1.  **Prerequisites:** Ensure you have already followed the **Setup Instructions (Running from Source)** section, so the code is cloned, the virtual environment (`venv`) is created, and dependencies (`requirements.txt`) are installed.**
 
 2.  **Create a `systemd` Service File:**
     You'll need root privileges to create a service file. Open a text editor with `sudo`, for example:
