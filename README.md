@@ -18,7 +18,7 @@ Follow these steps to get the application running directly from the source code 
 1.  **Clone the Repository:**
     Open your terminal or command prompt and run:
     ```bash
-    git clone [https://github.com/johannmkammiste/backingtrackplayer](https://github.com/johannmkammiste/backingtrackplayer)
+    git clone backingtrackplayer https://github.com/johannmkammiste/backingtrackplayer
     cd backingtrackplayer
     ```
 
