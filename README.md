@@ -1,6 +1,7 @@
-# backingtrackplayer
+# Backing Track Player
 
 A backing track player built using Python and Flask that is light-weight and supports multiple OS-s! You can configure setlists and choose different outputs for all audio files in a song.
+A bachelor's thesis project in the University of Tartu, Estonia. 2025.
 
 ## Prerequisites
 
