@@ -69,16 +69,16 @@ This project was mostly designed with a Raspberry Pi in mind, so here are the in
 
 1. **Install Raspberry Pi OS with the Desktop and do the initial setup**
    
-   The author used a Raspberrry Pi 3 A+ with Raspberry Pi OS 64-bit Bookworm.
+   The author used a Raspberrry Pi 3 A+ with Raspberry Pi OS 32-bit Bookworm.
 2. **Update your Raspberry Pi and install required programs**
    
-   First update and install the browser and unclutter.
+   First update and install the browser and PortAudio.
     ```bash
     sudo apt update && sudo apt upgrade -y
     sudo apt install --no-install-recommends chromium-browser
-    sudo apt install unclutter
+    sudo apt install portaudio19-dev
     ```
-   Then install the program.
+   Then install the program (and PortAudio).
    ```bash
    git clone https://github.com/johannmkammiste/backingtrackplayer backingtrackplayer
    cd backingtrackplayer
@@ -90,8 +90,7 @@ This project was mostly designed with a Raspberry Pi in mind, so here are the in
    ```bash
    sudo raspi-config
    ```
-   Choose 1 System Options -> S5 Boot -> B2 Desktop Desktop GUI
-   Then 1 System Options -> S6 Auto Login -> YES -> YES
+   Choose 1 System Options -> S5 Boot -> B4 Desktop Desktop GUI with Auto-Login
    Also make sure you are using the Wayland backend.
 4. 
 
