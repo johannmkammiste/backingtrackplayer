@@ -68,8 +68,10 @@ You can also create an excecutable using pyinstaller.
 This project was mostly designed with a Raspberry Pi in mind, so here are the instructions on how to run this on startup and turn your Rasperry into a kiosk:
 
 1. **Install Raspberry Pi OS with the Desktop and do the initial setup**
+   
    The author used a Raspberrry Pi 3 A+ with Raspberry Pi OS 64-bit Bookworm.
 2. **Update your Raspberry Pi and install required programs**
+   
    First update and install the browser and unclutter.
     ```bash
     sudo apt update && sudo apt upgrade -y
@@ -84,7 +86,14 @@ This project was mostly designed with a Raspberry Pi in mind, so here are the in
    source venv/bin/activate
    pip install -r requirements.txt
    ```
-    
+3. **Change raspi-config settings**
+   ```bash
+   sudo raspi-config
+   ```
+   Choose 1 System Options -> S5 Boot -> B2 Desktop Desktop GUI
+   Then 1 System Options -> S6 Auto Login -> YES -> YES
+   Also make sure you are using the Wayland backend.
+4. 
 
 
 
