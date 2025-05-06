@@ -76,9 +76,11 @@ This project was mostly designed with a Raspberry Pi in mind, so here are the in
     ```bash
     sudo apt update && sudo apt upgrade -y
     sudo apt install --no-install-recommends chromium-browser
-    sudo apt install portaudio19-dev
+    sudo apt-get install portaudio19-dev
+    sudo apt-get install libopenblas-dev
+
     ```
-   Then install the program (and PortAudio).
+   Then install the program.
    ```bash
    git clone https://github.com/johannmkammiste/backingtrackplayer backingtrackplayer
    cd backingtrackplayer
