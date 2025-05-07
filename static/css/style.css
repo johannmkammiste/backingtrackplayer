@@ -419,6 +419,171 @@ button:disabled,
 }
 
 
+/* Add to your static/css/style.css or a new dedicated modal.css and link it */
+
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed for the modal itself (e.g., if screen is tiny) */
+    background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+    padding-top: 60px; /* Location of the box */
+    /* For centering the modal content */
+    display: flex; /* Use flex to center modal-content */
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #2c3e50; /* Darker theme for modal content */
+    margin: auto; /* Auto margins for centering, works with flex too */
+    padding: 0; /* Remove padding here, apply to header/body/footer */
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 650px; /* Adjust as needed */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+    display: flex; /* Use flex for internal layout */
+    flex-direction: column; /* Stack header, body, footer */
+    max-height: 85vh; /* Limit modal height to allow for scrolling */
+    color: #ecf0f1;
+}
+
+.modal-header {
+    padding: 15px 20px;
+    background-color: #34495e; /* Slightly different header bg */
+    color: white;
+    border-bottom: 1px solid #4a6278;
+    border-top-left-radius: 8px; /* Match modal content */
+    border-top-right-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2, .modal-header h4 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.close-modal-btn {
+    color: #aaa;
+    float: right; /* Keeps it to the right */
+    font-size: 28px;
+    font-weight: bold;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 5px; /* Give some clickable area */
+    line-height: 1;
+}
+
+.close-modal-btn:hover,
+.close-modal-btn:focus {
+    color: #f1c40f; /* Accent color on hover */
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 15px 20px;
+    overflow-y: auto; /* This is key: makes the body scrollable */
+    flex-grow: 1; /* Allows body to take available space */
+    min-height: 100px; /* Ensure it has some minimum height */
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    background-color: #34495e;
+    text-align: right; /* Align buttons to the right, or use flex */
+    border-top: 1px solid #4a6278;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.modal-button.cancel {
+    background-color: #7f8c8d;
+    color: white;
+    padding: 8px 15px; /* Adjust padding */
+}
+.modal-button.cancel:hover { background-color: #95a5a6; }
+
+
+/* Specific to Media Library Modal if needed */
+.media-library-content .modal-body {
+    /* You might want specific padding or layout here */
+}
+
+.global-upload-area {
+    border: 2px dashed rgba(255, 255, 255, 0.2); /* Lighter dash for dark theme */
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
+    background-color: rgba(0,0,0,0.1); /* Slight bg */
+}
+.global-upload-area.dragover {
+    border-color: #f1c40f; /* Accent color */
+    background-color: rgba(241, 196, 15, 0.1);
+}
+.global-upload-area .upload-button {
+    display: inline-block;
+    padding: 10px 18px;
+    background-color: rgba(241, 196, 15, 0.15); /* Accent color, slightly transparent */
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+.global-upload-area .upload-button:hover {
+    background-color: rgba(241, 196, 15, 0.25);
+}
+.upload-hint {
+    display: block;
+    margin-top: 10px;
+    color: #95a5a6; /* Lighter grey */
+    font-size: 0.9rem;
+}
+#global-upload-status {
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+#global-upload-status.status-success { color: #2ecc71; }
+#global-upload-status.status-error { color: #e74c3c; }
+#global-upload-status.status-uploading { color: #3498db; }
+
+.available-files-list {
+    /* max-height will be controlled by modal-body overflow */
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 4px;
+    background-color: rgba(0,0,0,0.1);
+}
+.available-files-list ul {
+    list-style-type: none;
+    padding: 0; margin: 0;
+}
+.available-files-list li, .audio-file-select-item {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: #ecf0f1; /* Ensure text is light */
+}
+.available-files-list li:last-child, .audio-file-select-item:last-child {
+    border-bottom: none;
+}
+.available-files-list li:hover, .audio-file-select-item:hover {
+    background-color: rgba(255,255,255,0.15);
+}
+
 /* ===== Responsive Adjustments ===== */
 
 /* NOTE: The @media (max-width: 1024px) block has been removed

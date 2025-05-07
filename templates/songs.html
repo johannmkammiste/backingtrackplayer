@@ -5,6 +5,9 @@
     <button id="add-song-btn" class="add-song-button">
         ＋ Add New Song
     </button>
+    <button id="manage-media-btn" class="manage-media-button">
+        <span role="img" aria-label="Music Notes">🎵</span> Manage Audio Files
+    </button>
     <div class="songs-list">
         {% for song in songs %}
         <div class="song-item" data-song-id="{{ song.id }}">
@@ -18,6 +21,7 @@
 
 {% block content %}
 <div class="song-editor" id="song-editor">
+    {# ***** ADD THIS MISSING CONTENT BACK ***** #}
     <div class="empty-state" id="empty-state">
         <p>Select a song from the list or create a new one</p>
     </div>
@@ -45,19 +49,57 @@
         <div class="tracks-section">
             <h3>Audio Tracks</h3>
             <div class="tracks-list" id="tracks-list">
-                <!-- Tracks will be added here dynamically -->
-            </div>
-
-            <div class="upload-area" id="upload-area">
-                <input type="file" id="file-upload" multiple accept=".wav,.mp3,.ogg,.aiff" style="display: none;">
-                <label for="file-upload" class="upload-button">
-                    Upload Audio Files
-                </label>
-                <span class="upload-hint">Drag & drop files here or click to browse</span>
-            </div>
+                </div>
+            <button id="add-track-to-song-btn" class="action-button add-track">＋ Add Track to Song</button>
         </div>
+    </div>
+    {# ***** END OF MISSING CONTENT ***** #}
+</div>
 
-
+{# Modal for selecting audio files for a track #}
+<div id="select-audio-file-modal" class="modal" style="display: none;">
+    <div class="modal-content"> {# Generic modal-content is fine #}
+        <div class="modal-header">
+            <h4>Select Audio File for Track</h4>
+            <button class="close-modal-btn" data-modal-id="select-audio-file-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="audio-file-selector-list">
+            {## Populated by JS ##}
+        </div>
+        <div class="modal-footer">
+             <button class="modal-button cancel" data-modal-id="select-audio-file-modal">Cancel</button>
+        </div>
     </div>
 </div>
+
+
+<div id="media-library-modal" class="modal" style="display: none;">
+    <div class="modal-content media-library-content"> {# Added class here for potential specific styling #}
+        <div class="modal-header">
+            <h2>Audio File Library</h2>
+            <button class="close-modal-btn" data-modal-id="media-library-modal" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="global-upload-area">
+                <input type="file" id="global-file-upload" multiple accept=".wav,.mp3,.ogg,.aiff" style="display: none;">
+                <label for="global-file-upload" class="upload-button">
+                    Upload New Audio Files
+                </label>
+                <span class="upload-hint">Drag & drop files here or click to browse</span>
+                <div id="global-upload-status"></div>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+            <h3>Available Audio Files</h3>
+            <div id="available-audio-files-list" class="available-files-list">
+                <p>Loading audio files...</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-button cancel" data-modal-id="media-library-modal">Close</button>
+        </div>
+    </div>
+</div>
+
+
+
 {% endblock %}

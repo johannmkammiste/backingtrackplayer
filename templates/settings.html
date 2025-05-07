@@ -1,15 +1,17 @@
 {% extends "base.html" %}
 
 {% block sidebar %}
-    <div class="songs-sidebar">
-        <div class="songs-list">
-            <div class="song-item active" data-section="audio-output">
+    <div class="songs-sidebar"> {# Using songs-sidebar for consistent list styling #}
+        <div class="songs-list"> {# Consistent list container class #}
+            {# Sidebar Navigation Items for Settings Sections #}
+            <div class="song-item active" data-section="audio-output"> {# Use song-item class for styling #}
                 <span class="song-name">Audio Output</span>
             </div>
             <div class="song-item" data-section="keyboard-control">
-                <span class="song-name">Keyboard Control</span></div>
-            <div class="song-item" data-section="file-management">
-                <span class="song-name">File Management</span>
+                <span class="song-name">Keyboard Control</span>
+            </div>
+            <div class="song-item" data-section="data-management"> {# Unified Data Management Link #}
+                <span class="song-name">Data Management</span>
             </div>
             <div class="song-item" data-section="danger-zone">
                 <span class="song-name">Danger Zone</span>
@@ -19,8 +21,9 @@
 {% endblock %}
 
 {% block content %}
-    <div class="song-editor" id="settings-editor">
-        <div class="song-form" id="audio-output-section">
+    <div class="song-editor" id="settings-editor"> {# Main container for settings sections #}
+
+        <div class="song-form" id="audio-output-section"> {# Using song-form class for consistent structure #}
             <div class="song-header">
                 <h2>Audio Output Settings</h2>
             </div>
@@ -28,8 +31,7 @@
             <div class="settings-section">
                 <h3>Device & Channel Mapping</h3>
                 <div id="audio-output-mappings">
-                    <p>Loading configuration...</p>
-                </div>
+                    <p>Loading configuration...</p> </div>
                 <div class="settings-actions">
                      <button id="add-mapping-btn" class="settings-button add">＋ Add Output Mapping</button>
                 </div>
@@ -37,16 +39,17 @@
 
             <div class="settings-section">
                  <h3>Global Audio Settings</h3>
-                 {# Sample Rate Selector Row #}
-                 <div class="meta-row">
+                 <div class="meta-row"> {# Using meta-row from songs.css for consistency #}
                      <label for="sample-rate-select">Target Sample Rate:</label>
                      <select id="sample-rate-select" class="settings-select">
+                         {# Options populated by JS #}
                          <option value="44100">44100 Hz</option>
                          <option value="48000">48000 Hz</option>
+                         <option value="88200">88200 Hz</option>
+                         <option value="96000">96000 Hz</option>
                      </select>
                      <span class="setting-hint">(Affects playback resampling)</span>
                  </div>
-                 {# Global Volume Row #}
                  <div class="meta-row">
                      <label for="global-volume-control">Global Volume:</label>
                      <input type="range" id="global-volume-control" min="0" max="100" value="100" class="settings-select volume-slider">
@@ -54,90 +57,149 @@
                  </div>
             </div>
 
-            <div class="settings-actions main-actions">
+            <div class="settings-actions main-actions"> {# Wrapper for save button and status #}
                  <button id="save-audio-settings-btn" class="action-button save">Save Audio Settings</button>
-                 <span id="audio-save-status" class="save-status"></span>
+                 <span id="audio-save-status" class="save-status"></span> {# For save success/error messages #}
             </div>
        </div>
 
-         <div class="song-form" id="keyboard-control-section" style="display: none;">
+        <div class="song-form" id="keyboard-control-section" style="display: none;">
             <div class="song-header">
-                <h2>Keyboard Control</h2>
-                <div class="song-meta">
-                    <div class="meta-row">
-                        <label>
-                            <input type="checkbox" id="keyboard-enabled">
-                            Enable Keyboard Shortcuts
-                        </label>
-                    </div>
-
-                    <h3>Keyboard Shortcuts</h3>
-                    <div class="settings-shortcut-row">
-                        <label>Play/Pause:</label>
-                        <span class="shortcut-display" id="shortcut-play_pause-display">Not Set</span>
-                        <button class="learn-keyboard-btn" data-action="play_pause">Learn</button>
-                    </div>
-                    <div class="settings-shortcut-row">
-                        <label>Stop:</label>
-                        <span class="shortcut-display" id="shortcut-stop-display">Not Set</span>
-                        <button class="learn-keyboard-btn" data-action="stop">Learn</button>
-                    </div>
-                    <div class="settings-shortcut-row">
-                        <label>Next Song:</label>
-                        <span class="shortcut-display" id="shortcut-next-display">Not Set</span>
-                        <button class="learn-keyboard-btn" data-action="next">Learn</button>
-                    </div>
-                    <div class="settings-shortcut-row">
-                        <label>Previous Song:</label>
-                        <span class="shortcut-display" id="shortcut-previous-display">Not Set</span>
-                        <button class="learn-keyboard-btn" data-action="previous">Learn</button>
-                    </div>
+                <h2>Keyboard Control Settings</h2>
+            </div>
+            <div class="settings-section">
+                <div class="setting-row"> {# Use setting-row for layout #}
+                    <label class="checkbox-label"> {# Custom class for checkbox label styling if needed #}
+                        <input type="checkbox" id="keyboard-enabled" class="settings-checkbox"> {# Custom class? #}
+                        Enable Keyboard Shortcuts
+                    </label>
+                    <span id="keyboard-status" class="status-indicator">Keyboard: Inactive</span> {# Add status indicator #}
                 </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Define Shortcuts</h3>
+                <div class="setting-row">
+                    <label for="shortcut-play_pause-display">Play/Pause:</label>
+                    <span class="shortcut-display" id="shortcut-play_pause-display">Not Set</span>
+                    <button class="settings-button learn-keyboard-btn" data-action="play_pause">Learn</button>
+                </div>
+                <div class="setting-row">
+                    <label for="shortcut-stop-display">Stop:</label>
+                    <span class="shortcut-display" id="shortcut-stop-display">Not Set</span>
+                    <button class="settings-button learn-keyboard-btn" data-action="stop">Learn</button>
+                </div>
+                <div class="setting-row">
+                    <label for="shortcut-next-display">Next Song:</label>
+                    <span class="shortcut-display" id="shortcut-next-display">Not Set</span>
+                    <button class="settings-button learn-keyboard-btn" data-action="next">Learn</button>
+                </div>
+                <div class="setting-row">
+                    <label for="shortcut-previous-display">Previous Song:</label>
+                    <span class="shortcut-display" id="shortcut-previous-display">Not Set</span>
+                    <button class="settings-button learn-keyboard-btn" data-action="previous">Learn</button>
+                </div>
+                 <div id="keyboard-save-status" class="save-status setting-status-message"></div>
             </div>
         </div>
 
-        <!-- File Management Section -->
-        <div class="song-form" id="file-management-section" style="display: none;">
+        <div class="song-form" id="data-management-section" style="display: none;">
             <div class="song-header">
-                <h2>File Management</h2>
-                <div class="song-meta">
-                    <div class="meta-row">
-                        <button id="open-audio-dir" class="settings-button">
-                            Open Audio Directory
-                        </button>
+                <h2>Data & File Management</h2>
+            </div>
+
+            <div class="settings-section">
+                <h3>Import/Export Configuration</h3>
+                <p class="setting-hint">Download or upload your song and setlist configurations (.json files). Audio media files are not included.</p>
+                <div class="sub-section"> {# Optional wrapper for visual grouping #}
+                    <h4>Export Data</h4>
+                    <div class="setting-row">
+                        <label>Songs Data:</label>
+                        {# USE <a> tag with download attribute for NO JS export #}
+                        <a href="{{ url_for('export_data', export_type='songs') }}"
+                           download="songs.json"
+                           class="settings-button"
+                           role="button">Export songs.json</a>
                     </div>
-                    <div class="meta-row">
-                        <button id="clear-cache" class="settings-button">
-                            Clear Application Cache
-                        </button>
+                    <div class="setting-row">
+                        <label>Setlists Data:</label>
+                        {# USE <a> tag with download attribute for NO JS export #}
+                        <a href="{{ url_for('export_data', export_type='setlists') }}"
+                           download="setlists.json"
+                           class="settings-button"
+                           role="button">Export setlists.json</a>
                     </div>
                 </div>
+
+                <div class="sub-section" style="margin-top: 25px;">
+                    <h4>Import Data</h4>
+                    <p class="setting-hint" style="color: #e74c3c; margin-bottom:15px; font-weight: bold;">
+                        Warning: Importing will OVERWRITE existing data. Backup first by exporting!
+                    </p>
+                    <div class="setting-row">
+                        <label for="import-songs-file">Songs Data (songs.json):</label>
+                        <input type="file" id="import-songs-file" class="settings-input" accept=".json">
+                        <button id="import-songs-btn" class="settings-button action">Import Songs</button> {# JS needed for this #}
+                    </div>
+                    <div id="import-songs-status" class="save-status setting-status-message"></div> {# Status message area #}
+
+                    <div class="setting-row" style="margin-top: 20px;">
+                        <label for="import-setlists-file">Setlists Data (setlists.json):</label>
+                        <input type="file" id="import-setlists-file" class="settings-input" accept=".json">
+                        <button id="import-setlists-btn" class="settings-button action">Import Setlists</button> {# JS needed for this #}
+                    </div>
+                    <div id="import-setlists-status" class="save-status setting-status-message"></div> {# Status message area #}
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>File System & Cache</h3>
+                 <div class="setting-row">
+                    <label>Audio Files Folder:</label>
+                    <button id="open-audio-dir" class="settings-button">
+                        Open Audio Directory
+                    </button>
+                </div>
+                <p class="setting-hint">Opens the system folder where your uploaded audio tracks are stored (OS support varies).</p>
+
+                <div class="setting-row" style="margin-top:15px;">
+                    <label>Application Cache:</label>
+                    <button id="clear-cache" class="settings-button">
+                        Clear Application Cache
+                    </button>
+                </div>
+                <p class="setting-hint">Clears temporary server-side caches. Does not delete songs, setlists, or settings files.</p>
             </div>
         </div>
 
-        <!-- Danger Zone Section -->
         <div class="song-form" id="danger-zone-section" style="display: none;">
             <div class="song-header">
                 <h2>Danger Zone</h2>
-                <div class="song-meta">
-                    <div class="meta-row">
-                        <p>These actions cannot be undone. Proceed with caution.</p>
-                    </div>
-                    <div class="meta-row">
-                        <button id="factory-reset" class="settings-button danger">
-                            Factory Reset
-                        </button>
-                    </div>
-                    <div class="meta-row">
-                        <button id="delete-all-songs" class="settings-button danger">
-                            Delete All Songs
-                        </button>
-                    </div>
+            </div>
+            <div class="settings-section">
+                <p class="setting-hint" style="color: #e74c3c; font-weight: bold;">These actions are irreversible. Please proceed with extreme caution.</p>
+                <div class="setting-row">
+                    <label>Reset All Data:</label>
+                    <button id="factory-reset" class="settings-button danger">
+                        Factory Reset
+                    </button>
                 </div>
+                <p class="setting-hint">Deletes ALL songs, setlists, uploaded audio files, and resets all settings to their defaults.</p>
+
+                <div class="setting-row" style="margin-top:15px;">
+                    <label>Delete All Songs:</label>
+                    <button id="delete-all-songs" class="settings-button danger">
+                        Delete All Songs
+                    </button>
+                </div>
+                <p class="setting-hint">Deletes ALL songs and their associated audio files. Setlists will be emptied. Other settings remain.</p>
             </div>
         </div>
-    </div>
+    </div> {# End #settings-editor #}
 
-    <script src="{{ url_for('static', filename='js/input-control.js') }}"></script>
+{% endblock %}
 
+{% block scripts %}
+    {# Include base.html script loading logic, which should load settings.js and input-control.js on /settings route #}
+    {{ super() }} {# This includes the scripts block from base.html #}
 {% endblock %}

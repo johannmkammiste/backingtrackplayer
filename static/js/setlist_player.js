@@ -1,22 +1,27 @@
 document.addEventListener('DOMContentLoaded', function () {
+    // ... (Keep variables: setlistTitle, songsList, currentSongName, etc.) ...
     const setlistTitle = document.getElementById('setlist-player-title');
     const songsList = document.getElementById('setlist-songs');
     const currentSongName = document.getElementById('current-song-name');
     const currentSongBpm = document.getElementById('current-song-bpm');
-    const timeRemainingDisplay = document.getElementById('time-remaining'); // Get timer element
+    const timeRemainingDisplay = document.getElementById('time-remaining');
     const prevBtn = document.getElementById('previous-btn');
     const playBtn = document.getElementById('play-btn');
     const stopBtn = document.getElementById('stop-btn');
     const nextBtn = document.getElementById('next-btn');
 
-    // [State variables - Add timer variables]
     let currentSetlistId = null;
     let currentSongIndex = 0;
     let currentSetlist = { songs: [] };
     let isPlayingOrLoading = false;
-    let timerInterval = null; // To hold the setInterval ID
-    let currentSongDuration = 0; // To store duration of the current song
-    let remainingSeconds = 0; // To track remaining time
+    let isActivelyPreloading = false;
+    let preloadedSongId = null;
+    let timerInterval = null;
+    let currentSongDuration = 0;
+    let remainingSeconds = 0;
+
+    // --- NEW: Controller for cancelling preload fetch requests ---
+    let currentPreloadController = null;
 
     const pathParts = window.location.pathname.split('/');
     currentSetlistId = parseInt(pathParts[pathParts.length - 2]);
@@ -24,60 +29,50 @@ document.addEventListener('DOMContentLoaded', function () {
     if (isNaN(currentSetlistId)) {
         console.error('Invalid setlist ID');
         currentSongName.textContent = "Error: Invalid Setlist ID";
-        prevBtn.disabled = true; playBtn.disabled = true; stopBtn.disabled = true; nextBtn.disabled = true;
+        [prevBtn, playBtn, stopBtn, nextBtn].forEach(btn => btn.disabled = true);
         return;
     }
 
     initPlayer();
 
-    // --- NEW: Helper function to format time ---
     function formatTime(totalSeconds) {
-        if (isNaN(totalSeconds) || totalSeconds < 0) {
-            return "--:--";
-        }
+        if (isNaN(totalSeconds) || totalSeconds < 0) return "--:--";
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = Math.floor(totalSeconds % 60);
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
 
     function startTimer(duration) {
-        stopTimer(); // Clear any existing timer first
+        stopTimer();
         if (isNaN(duration) || duration <= 0) {
-             console.warn("startTimer called with invalid duration:", duration);
-             updateTimerDisplay(0); // Display 0:00 if duration is invalid
-             return;
+            console.warn("startTimer called with invalid duration:", duration);
+            updateTimerDisplay(0);
+            return;
         }
-
         currentSongDuration = duration;
         remainingSeconds = Math.round(duration);
-        console.log(`Timer started. Duration: ${duration}s, Remaining: ${remainingSeconds}s`);
-        updateTimerDisplay(remainingSeconds); // Show initial time
-
+        updateTimerDisplay(remainingSeconds);
         timerInterval = setInterval(() => {
             remainingSeconds--;
             updateTimerDisplay(remainingSeconds);
-            // console.log(`Timer tick: ${remainingSeconds}s left`); // Optional: verbose logging
-
             if (remainingSeconds <= 0) {
                 console.log("Timer finished.");
                 stopTimer();
-                // Optional: Automatically go to next song when timer finishes?
-                // playNextSong(); // Be careful with automatic actions
             }
-        }, 1000); // Update every second
+        }, 1000);
     }
 
     function stopTimer() {
         if (timerInterval) {
             clearInterval(timerInterval);
             timerInterval = null;
-            console.log("Timer stopped.");
         }
-        // Reset display when stopped, unless you want it to hold the last value
-        // updateTimerDisplay(0); // Or display "--:--" or currentSongDuration? Let's reset.
-         if (timeRemainingDisplay) timeRemainingDisplay.textContent = "Time: --:--";
+        if (!isPlayingOrLoading && currentSetlist.songs[currentSongIndex]) {
+             timeRemainingDisplay.textContent = `Length: ${formatTime(currentSetlist.songs[currentSongIndex].duration || 0)}`;
+        } else if (!isPlayingOrLoading) {
+            timeRemainingDisplay.textContent = "Length: --:--";
+        }
          remainingSeconds = 0;
-         currentSongDuration = 0; // Reset duration too
     }
 
     function updateTimerDisplay(seconds) {
@@ -86,293 +81,377 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // --- Modified/Existing Functions ---
-    function initPlayer() {
-        const songItems = document.querySelectorAll('.song-item');
-        currentSetlist.songs = Array.from(songItems).map(item => {
-             const nameEl = item.querySelector('.song-name');
-             const detailsEl = item.querySelector('.song-details');
-             const songId = parseInt(item.dataset.songId);
-             const duration = parseFloat(item.dataset.duration) || 0;
-             const tempoMatch = detailsEl ? detailsEl.textContent.match(/(\d+)\s*BPM/i) : null;
+    // --- UPDATED: triggerPreload with AbortController ---
+    async function triggerPreload(songIndexToPreload) {
+        // Cancel previous preload fetch if it's still running
+        if (currentPreloadController) {
+            console.log("Aborting previous preload request...");
+            currentPreloadController.abort();
+        }
+        // Create a new controller for the new request
+        currentPreloadController = new AbortController();
+        const signal = currentPreloadController.signal;
 
-             if (!nameEl || isNaN(songId) || !tempoMatch) {
-                 console.warn("Could not parse song data for item:", item);
-                 return null;
+        if (songIndexToPreload < 0 || songIndexToPreload >= currentSetlist.songs.length) {
+            console.warn("triggerPreload: Invalid song index", songIndexToPreload);
+            currentPreloadController = null; // Reset controller
+            return;
+        }
+        const songToPreload = currentSetlist.songs[songIndexToPreload];
+        if (!songToPreload || !songToPreload.id) {
+            console.error("triggerPreload: Song data is invalid for index", songIndexToPreload);
+            currentPreloadController = null;
+            return;
+        }
+
+        // Avoid redundant preloads if already done and not currently preloading something else
+        if (preloadedSongId === songToPreload.id && !isActivelyPreloading) {
+            console.log(`Song '${songToPreload.name}' (ID: ${songToPreload.id}) is already preloaded.`);
+             if (!isPlayingOrLoading) { // Ensure button is correct if nothing else is happening
+                 playBtn.textContent = '▶ Play';
+                 playBtn.disabled = false;
              }
-             return { id: songId, name: nameEl.textContent, tempo: parseInt(tempoMatch[1]), duration: duration }; // Store duration
+            currentPreloadController = null; // Reset controller
+            return;
+        }
+
+        console.log(`Preloading song: '${songToPreload.name}' (ID: ${songToPreload.id})`);
+        isActivelyPreloading = true;
+        preloadedSongId = null; // Invalidate previous preloaded song ID until this one confirms
+        // Set button state only if not currently playing
+        if (!isPlayingOrLoading) {
+            playBtn.disabled = true;
+            playBtn.textContent = '⏳ Preloading...';
+        }
+        showNotification(`Preloading '${songToPreload.name}'...`, 'info');
+
+        try {
+            const response = await fetch(`/api/setlists/${currentSetlistId}/song/${songToPreload.id}/preload`, {
+                method: 'POST',
+                signal: signal // Pass the signal to fetch
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                 // Check if error was due to abort
+                 if (signal.aborted) {
+                     // Don't throw, just log and exit cleanly for aborts
+                     console.log(`Preload for '${songToPreload.name}' aborted.`);
+                     // Don't change preloadedSongId or button state here, let the next preload handle it
+                     return; // Exit function early
+                 }
+                 throw new Error(data.error || `Failed to preload '${songToPreload.name}'`);
+            }
+            // Success!
+            preloadedSongId = data.preloaded_song_id; // Store the successfully preloaded song's ID
+            console.log(`Successfully preloaded ${preloadedSongId}`);
+            showNotification(`'${songToPreload.name}' is ready.`, 'success');
+
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log(`Preload request for '${songToPreload.name}' was aborted.`);
+            } else {
+                console.error('Error in triggerPreload:', error);
+                showNotification(error.message, 'error');
+                preloadedSongId = null; // Clear preloaded ID on failure
+            }
+        } finally {
+            // Check if the controller associated with *this* finished request is still the active one
+             if (currentPreloadController && currentPreloadController.signal === signal) {
+                 currentPreloadController = null; // This request is done, clear its controller
+             }
+             isActivelyPreloading = false; // Mark preloading as finished for this attempt
+
+            // Final UI update based on the *current* state, not just this finished preload attempt
+            if (!isPlayingOrLoading && !isActivelyPreloading) { // If nothing else is happening
+                 playBtn.disabled = false;
+                 // Set text based on whether the *currently selected* song is the one confirmed preloaded
+                 if (currentSetlist.songs[currentSongIndex]?.id === preloadedSongId) {
+                     playBtn.textContent = '▶ Play'; // Ready!
+                 } else {
+                     playBtn.textContent = '▶ Play'; // Default if preload failed or selection changed
+                 }
+            } else if (isPlayingOrLoading) {
+                // If playback started, button text is handled by playCurrentSong/stopPlayback
+            } else if (isActivelyPreloading) {
+                // If *another* preload started, button text is '⏳ Preloading...'
+                playBtn.textContent = '⏳ Preloading...';
+                playBtn.disabled = true;
+            }
+        }
+    }
+
+
+    function initPlayer() {
+        // ... (same parsing logic as before) ...
+         const songItems = document.querySelectorAll('.song-item');
+        currentSetlist.songs = Array.from(songItems).map(item => {
+            const nameEl = item.querySelector('.song-name');
+            const detailsEl = item.querySelector('.song-details');
+            const songId = parseInt(item.dataset.songId);
+            const duration = parseFloat(item.dataset.duration) || 0;
+            const tempoMatch = detailsEl ? detailsEl.textContent.match(/(\d+)\s*BPM/i) : null;
+            if (!nameEl || isNaN(songId) || !tempoMatch) {
+                console.warn("Could not parse song data for item:", item);
+                return null;
+            }
+            return { id: songId, name: nameEl.textContent, tempo: parseInt(tempoMatch[1]), duration: duration };
         }).filter(song => song !== null);
 
+
         if (currentSetlist.songs.length === 0) {
-             console.warn("No valid songs found in the setlist player.");
-             currentSongName.textContent = "Setlist is empty or contains errors";
-             playBtn.disabled = true; nextBtn.disabled = true; prevBtn.disabled = true;
+            console.warn("No valid songs found in the setlist player.");
+            currentSongName.textContent = "Setlist is empty";
+            [prevBtn, playBtn, stopBtn, nextBtn].forEach(btn => btn.disabled = true);
         } else {
             renderSongsList();
+            setActiveSong(0);
+            updateNowPlaying(currentSetlist.songs[0]);
+            triggerPreload(0); // Preload the first song
         }
 
         playBtn.addEventListener('click', playCurrentSong);
         stopBtn.addEventListener('click', stopPlayback);
-        prevBtn.addEventListener('click', playPreviousSong);
-        nextBtn.addEventListener('click', playNextSong);
+        // Link new handler names
+        prevBtn.addEventListener('click', handlePreviousSong);
+        nextBtn.addEventListener('click', handleNextSong);
     }
 
     function renderSongsList() {
-        document.querySelectorAll('.song-item').forEach((item) => { // No index needed here
+        document.querySelectorAll('.song-item').forEach((item) => {
             const songId = parseInt(item.dataset.songId);
             if (!currentSetlist.songs.some(s => s.id === songId)) {
-                 console.warn(`Skipping event listener for item with unknown song ID: ${songId}`);
-                 return;
+                console.warn(`Skipping event listener for item with unknown song ID: ${songId}`);
+                return;
             }
-            item.addEventListener('click', () => {
+            item.addEventListener('click', async () => {
                 const clickedSongIndex = currentSetlist.songs.findIndex(s => s.id === songId);
-                if (clickedSongIndex !== -1) {
-                     console.log(`Song item clicked: Index ${clickedSongIndex}, ID ${songId}`);
-                     if(isPlayingOrLoading && currentSongIndex === clickedSongIndex) {
-                          console.log("Clicked active song while playing/loading - ignoring");
-                          return; // Don't interrupt if clicking the currently playing song
-                     }
-                     // *** Stop timer when selecting a new song ***
-                     stopTimer();
-                     // If already playing, stop before switching
-                     if (isPlayingOrLoading) {
-                         stopPlayback().then(() => { // Wait for stop before updating index/display
-                             currentSongIndex = clickedSongIndex;
-                             setActiveSong(currentSongIndex);
-                             updateNowPlaying(currentSetlist.songs[currentSongIndex]);
-                         });
-                     } else {
-                         currentSongIndex = clickedSongIndex;
-                         setActiveSong(currentSongIndex);
-                         updateNowPlaying(currentSetlist.songs[currentSongIndex]);
-                     }
-                } else { console.error(`Could not find clicked song ID ${songId} in parsed setlist.`); }
+                 if (clickedSongIndex === -1) return;
+
+                if (currentSongIndex === clickedSongIndex && (isPlayingOrLoading || playBtn.textContent === '⏸ Playing')) return;
+
+                if (isPlayingOrLoading || isActivelyPreloading) {
+                    await stopPlayback(); // Stop current playback if any
+                }
+                 if (isPlayingOrLoading) { // Check again
+                    console.warn("Song click: Previous action stop might not have completed."); return;
+                 }
+
+                currentSongIndex = clickedSongIndex;
+                setActiveSong(currentSongIndex);
+                updateNowPlaying(currentSetlist.songs[currentSongIndex]);
+                triggerPreload(currentSongIndex); // Preload the newly selected song
             });
         });
-        if (currentSetlist.songs.length > 0) {
-            setActiveSong(0);
-            updateNowPlaying(currentSetlist.songs[0]);
-             updateTimerDisplay(currentSetlist.songs[0]?.duration || 0);
-             timeRemainingDisplay.textContent = `Length: ${formatTime(currentSetlist.songs[0]?.duration || 0)}`; // Show Length initially
-        }
     }
 
     function setActiveSong(index) {
+        // ... (same as before) ...
         document.querySelectorAll('.song-item').forEach((item, i) => {
-             if (item) { item.classList.toggle('active', i === index); }
+            item.classList.toggle('active', i === index);
         });
-        const activeItem = document.querySelector(`.song-item.active`); // Simpler selector
-        if (activeItem && typeof activeItem.scrollIntoView === 'function') {
-              activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-         }
+        const activeItem = document.querySelector(`.song-item.active`);
+        if (activeItem) activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function updateNowPlaying(song) {
-        if (!song) {
-             console.warn("updateNowPlaying called with invalid song data.");
-             currentSongName.textContent = "Error: Song data missing";
-             currentSongBpm.textContent = "BPM: --";
-             timeRemainingDisplay.textContent = "Length: --:--"; // Reset time display too
-             return;
+        // ... (same as before, ensures Length is shown when idle) ...
+         if (!song) {
+            currentSongName.textContent = "Error: Song data missing";
+            currentSongBpm.textContent = "BPM: --";
+            timeRemainingDisplay.textContent = "Length: --:--";
+            return;
         }
         currentSongName.textContent = song.name;
         currentSongBpm.textContent = `BPM: ${song.tempo}`;
-        // *** Update display to show LENGTH when not playing ***
-        if (!isPlayingOrLoading && !timerInterval) {
-             timeRemainingDisplay.textContent = `Length: ${formatTime(song.duration || 0)}`;
+        if (!isPlayingOrLoading && !isActivelyPreloading && !timerInterval) {
+            timeRemainingDisplay.textContent = `Length: ${formatTime(song.duration || 0)}`;
         }
     }
 
-   async function playCurrentSong() {
-        if (isPlayingOrLoading) {
-             console.log("playCurrentSong: Already playing or loading, request ignored.");
-             return;
+    async function playCurrentSong() {
+        if (isActivelyPreloading) { // Prevent play if background preload is running
+            showNotification("Please wait, song is preloading...", "info");
+            return;
         }
-        isPlayingOrLoading = true;
-
-        if (currentSetlist.songs.length === 0 || currentSongIndex >= currentSetlist.songs.length) {
-            console.log("playCurrentSong: No valid song selected or setlist empty.");
-            showNotification("No song selected or setlist empty.", "warning");
-            isPlayingOrLoading = false;
+        if (isPlayingOrLoading) { // Prevent play if already playing/loading playback
+            console.log("playCurrentSong: Already playing or loading playback, request ignored.");
+            return;
+        }
+        if (currentSetlist.songs.length === 0 || currentSongIndex >= currentSetlist.songs.length || currentSongIndex < 0) {
+            showNotification("No valid song selected.", "warning");
             return;
         }
 
-        const targetUrl = `/api/setlists/${currentSetlistId}/play`;
-        console.log(`playCurrentSong: Attempting to fetch URL: ${targetUrl}`);
-        console.log(`playCurrentSong: Sending song index: ${currentSongIndex}`);
+        // Now safe to proceed
+        isPlayingOrLoading = true; // Mark that we are initiating playback
+        const songToPlay = currentSetlist.songs[currentSongIndex];
+        console.log(`playCurrentSong: Requesting playback for '${songToPlay.name}' (Index: ${currentSongIndex})`);
 
         playBtn.disabled = true;
-        playBtn.textContent = '⏳ Loading...';
-        stopTimer(); // Ensure any previous timer is stopped
+        playBtn.textContent = '⏳ Loading...'; // Indicates initiating playback sequence
 
         try {
-            const response = await fetch(targetUrl, {
+            const response = await fetch(`/api/setlists/${currentSetlistId}/play`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ current_song_index: currentSongIndex })
             });
             const responseData = await response.json();
-            if (!response.ok) { throw new Error(responseData.error || JSON.stringify(responseData) || `HTTP error! status: ${response.status}`); }
-            console.log("playCurrentSong: Received data:", responseData);
+            if (!response.ok) { throw new Error(responseData.error || `HTTP error! status: ${response.status}`); }
 
-            if (responseData.success) {
-                console.log("playCurrentSong: Success reported by backend.");
-                if (responseData.current_song_index === currentSongIndex) {
-                    currentSongName.textContent = responseData.song_name;
-                    currentSongBpm.textContent = `BPM: ${responseData.song_tempo}`;
-                    setActiveSong(currentSongIndex);
-                    playBtn.textContent = '⏸ Playing';
-                    // *** Start timer with duration from API response ***
-                    startTimer(responseData.duration);
-                } else {
-                     console.log("playCurrentSong: Backend played a different song index than expected.");
-                     playBtn.textContent = '▶ Play';
-                     isPlayingOrLoading = false; // Reset loading flag
-                }
+            if (responseData.success && responseData.current_song_index === currentSongIndex) {
+                console.log("Playback started successfully by backend.");
+                currentSongName.textContent = responseData.song_name;
+                currentSongBpm.textContent = `BPM: ${responseData.song_tempo}`;
+                setActiveSong(currentSongIndex);
+                playBtn.textContent = '⏸ Playing';
+                playBtn.disabled = false; // Enable stop/pause interaction
+                startTimer(responseData.duration);
+                preloadedSongId = responseData.current_song_id; // Update confirmed active/preloaded song
+                // isPlayingOrLoading remains true
             } else {
-                 console.error("playCurrentSong: Backend reported failure.", responseData);
-                 showNotification(responseData.error || 'Playback failed (unknown reason)', 'error');
-                 playBtn.textContent = '▶ Play';
-                 isPlayingOrLoading = false; // Reset flag
-                 stopTimer(); // Make sure timer is stopped on failure
+                 throw new Error(responseData.error || 'Playback failed or backend played wrong song.');
             }
         } catch (error) {
-            console.error('Error in playCurrentSong fetch/processing:', error);
-            showNotification(`Error: ${error.message || 'Could not initiate playback.'}`, 'error');
+            console.error('Error in playCurrentSong:', error);
+            showNotification(`Playback Error: ${error.message}`, 'error');
+            isPlayingOrLoading = false; // Reset flag on error
             playBtn.textContent = '▶ Play';
-            isPlayingOrLoading = false; // Reset flag
-            stopTimer(); // Make sure timer is stopped on error
-        } finally {
-            // Button state is handled within success/error paths now
-            if (playBtn.textContent !== '⏸ Playing') {
-                 playBtn.disabled = false;
-                 isPlayingOrLoading = false; // Ensure reset if we reach here unexpectedly without playing
-            }
-            console.log(`playCurrentSong: Function finished. isPlayingOrLoading=${isPlayingOrLoading}`);
+            playBtn.disabled = false;
+            stopTimer();
+            updateNowPlaying(songToPlay);
         }
+        // If successful, isPlayingOrLoading remains true until stopPlayback is called
     }
 
-    async function stopPlayback() {
-        // No need to check isPlayingOrLoading here, stop should always be possible if active
-        // if (!isPlayingOrLoading && playBtn.textContent === '▶ Play') {
-        //     console.log("Stop requested but nothing seems to be playing/loading.");
-        //     return;
-        // }
+     async function stopPlayback() {
         console.log("Stop playback requested.");
-        // *** Stop timer immediately on stop request ***
-        stopTimer();
+        const songAtStop = currentSetlist.songs[currentSongIndex];
 
+        // --- Cancel ongoing preload fetch if any ---
+         if (currentPreloadController) {
+             console.log("Aborting any active preload request due to stop.");
+             currentPreloadController.abort();
+             currentPreloadController = null;
+         }
+         isActivelyPreloading = false;
+         // -----------------------------------------
+
+        stopTimer(); // Stop client timer
+
+        // If not actually playing or trying to load playback, just reset UI and exit
+        if (!isPlayingOrLoading && playBtn.textContent === '▶ Play') {
+            console.log("Stop requested but nothing playing/loading. Ensuring UI reset.");
+            playBtn.textContent = '▶ Play';
+            playBtn.disabled = false;
+            stopBtn.disabled = false;
+            if (songAtStop) updateNowPlaying(songAtStop);
+            return;
+        }
+
+        // Mark as not playing *before* API call (optimistic UI)
+        isPlayingOrLoading = false;
         stopBtn.disabled = true;
         stopBtn.textContent = 'Stopping...';
-        const wasAlreadyStopped = playBtn.textContent === '▶ Play'; // Check state before fetch
+        playBtn.textContent = '▶ Play';
+        playBtn.disabled = false;
 
         try {
             const response = await fetch('/api/stop', { method: 'POST' });
-             const data = await response.json(); // Assume JSON response
-             if (!response.ok) { throw new Error(data.error || `Stop failed: ${response.statusText}`); }
-
-            if (data.success) {
+             const data = await response.json();
+             if (!response.ok || !data.success) {
+                console.warn("Backend /api/stop reported failure or API error:", data.error || "Unknown");
+             } else {
                  console.log("Playback stopped successfully by backend.");
-            } else {
-                 // Log backend failure but proceed with UI reset
-                 console.warn("Backend reported failure stopping playback:", data.error);
-            }
+             }
         } catch (error) {
-            console.error('Error stopping playback via API:', error);
-            // Show error but still try to reset UI state
+            console.error('Error calling /api/stop:', error);
             showNotification('Error stopping playback: ' + error.message, 'error');
         } finally {
-             // Always reset UI state after stop attempt
+             // Final UI reset ensures consistency
              playBtn.textContent = '▶ Play';
              playBtn.disabled = false;
-             isPlayingOrLoading = false; // Reset flag
              stopBtn.disabled = false;
              stopBtn.textContent = '⏹ Stop';
-             // Restore display to show song length after stopping
-             if(currentSetlist.songs[currentSongIndex]) {
-                updateNowPlaying(currentSetlist.songs[currentSongIndex]);
+             isPlayingOrLoading = false;
+
+             if (songAtStop) {
+                updateNowPlaying(songAtStop);
+             } else if (currentSetlist.songs.length > 0) {
+                updateNowPlaying(currentSetlist.songs[0]);
              } else {
-                 timeRemainingDisplay.textContent = "Time: --:--"; // Reset if no song selected
+                 timeRemainingDisplay.textContent = "Length: --:--";
              }
              console.log(`stopPlayback: Function finished. isPlayingOrLoading=${isPlayingOrLoading}`);
         }
     }
 
-    async function playNextSong() {
+
+    async function handleNextSong() {
         if (currentSetlist.songs.length === 0) return;
-        console.log("Next song requested.");
-        // Stop current playback and timer *before* fetching next song info
-        await stopPlayback();
-        if (isPlayingOrLoading) {
-             console.warn("playNextSong: Previous playback stop failed or still processing.");
-             return;
+        console.log("Next song selected.");
+
+        if (isPlayingOrLoading || isActivelyPreloading) { // Stop playback OR cancel preload UI effects
+            await stopPlayback(); // stopPlayback now also cancels preload controller
         }
-        try {
-             const response = await fetch(`/api/setlists/${currentSetlistId}/control`, {
-                 method: 'POST',
-                 headers: { 'Content-Type': 'application/json' },
-                 body: JSON.stringify({ action: 'next', current_index: currentSongIndex })
-             });
-             const data = await response.json();
-             if (response.ok && data.success && data.action === 'next') {
-                 currentSongIndex = data.current_song_index;
-                 setActiveSong(currentSongIndex);
-                 updateNowPlaying(currentSetlist.songs[currentSongIndex]); // Update display to show new song length
-                 // playCurrentSong(); // Uncomment to autoplay next
-             } else if (data.action === 'end_of_setlist_reached'){
-                  showNotification(data.message || 'Reached end of setlist.', 'info');
-             } else {
-                 throw new Error(data.error || 'Failed to get next song index from backend.');
-             }
-        } catch (error) {
-            console.error('Error navigating to next song:', error);
-             showNotification(`Error going to next song: ${error.message}`, 'error');
+         if (isPlayingOrLoading || isActivelyPreloading) { // Check again
+            console.warn("handleNextSong: Previous action stop/cancel might not have completed."); return;
+         }
+
+        let nextIndex = currentSongIndex + 1;
+        if (nextIndex >= currentSetlist.songs.length) {
+            showNotification('Reached end of setlist.', 'info');
+            // Stay on the last song index
+            nextIndex = currentSetlist.songs.length - 1;
+             if (currentSongIndex === nextIndex) { // If already on last, just re-trigger preload
+                 triggerPreload(currentSongIndex);
+                 return;
+            }
+            // Otherwise, fall through to update UI to last song and preload it
         }
+
+        currentSongIndex = nextIndex;
+        setActiveSong(currentSongIndex);
+        updateNowPlaying(currentSetlist.songs[currentSongIndex]);
+        triggerPreload(currentSongIndex); // Preload the new song
     }
 
-    async function playPreviousSong() {
+    async function handlePreviousSong() {
         if (currentSetlist.songs.length === 0) return;
-        console.log("Previous song requested.");
-         // Stop current playback and timer *before* fetching previous song info
-         await stopPlayback();
-         if (isPlayingOrLoading) {
-             console.warn("playPreviousSong: Previous playback stop failed or still processing.");
-             return;
-         }
-        try {
-            const response = await fetch(`/api/setlists/${currentSetlistId}/control`, {
-                 method: 'POST',
-                 headers: { 'Content-Type': 'application/json' },
-                 body: JSON.stringify({ action: 'previous', current_index: currentSongIndex })
-             });
-             const data = await response.json();
-             if (response.ok && data.success && data.action === 'previous') {
-                 currentSongIndex = data.current_song_index;
-                 setActiveSong(currentSongIndex);
-                 updateNowPlaying(currentSetlist.songs[currentSongIndex]); // Update display to show new song length
-                 // playCurrentSong(); // Uncomment to autoplay previous
-            } else {
-                 // Don't throw error for "Already at first song"
-                 if(data.error !== 'Already at the first song') {
-                     throw new Error(data.error || 'Failed to get previous song index from backend.');
-                 } else {
-                     console.log("Already at first song."); // Just log it
-                 }
-             }
-        } catch (error) {
-            console.error('Error navigating to previous song:', error);
-            showNotification(`Error going to previous song: ${error.message}`, 'error');
+        console.log("Previous song selected.");
+
+        if (isPlayingOrLoading || isActivelyPreloading) {
+            await stopPlayback();
         }
+         if (isPlayingOrLoading || isActivelyPreloading) {
+            console.warn("handlePreviousSong: Previous action stop/cancel might not have completed."); return;
+         }
+
+        let prevIndex = currentSongIndex - 1;
+        if (prevIndex < 0) {
+            showNotification('Already at the first song.', 'info');
+            // Stay on the first song index
+            prevIndex = 0;
+            if (currentSongIndex === prevIndex) { // If already on first, re-trigger preload
+                triggerPreload(currentSongIndex);
+                return;
+            }
+             // Otherwise, fall through to update UI to first song and preload it
+        }
+
+        currentSongIndex = prevIndex;
+        setActiveSong(currentSongIndex);
+        updateNowPlaying(currentSetlist.songs[currentSongIndex]);
+        triggerPreload(currentSongIndex); // Preload the new song
     }
 
-     // Assumes showNotification is defined globally (e.g., in main.js)
-     function showNotification(message, type = 'info') {
-         if (typeof window.showNotification === 'function') { // Check window scope
-             window.showNotification(message, type); // Call global function
-         } else {
-             console.warn('showNotification function not found, using alert.');
-             alert(`${type.toUpperCase()}: ${message}`);
-         }
-     }
-
+    function showNotification(message, type = 'info') {
+        // ... (same as before) ...
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(message, type);
+        } else {
+            console.warn('showNotification (global) function not found, using alert for:', message);
+            alert(`${type.toUpperCase()}: ${message}`);
+        }
+    }
 });
