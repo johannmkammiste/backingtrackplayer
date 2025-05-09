@@ -51,18 +51,16 @@
                     <h4>Export Data</h4>
                     <div class="setting-row">
                         <label>Songs Data:</label>
-                        {# CHANGED BACK: Use <a> tag with download attribute #}
                         <a href="{{ url_for('export_data', export_type='songs') }}"
                            download="songs.json"
-                           class="settings-button" {# Keep button styling #}
+                           class="settings-button"
                            role="button">Export songs.json</a>
                     </div>
                     <div class="setting-row">
                         <label>Setlists Data:</label>
-                        {# CHANGED BACK: Use <a> tag with download attribute #}
                         <a href="{{ url_for('export_data', export_type='setlists') }}"
                            download="setlists.json"
-                           class="settings-button" {# Keep button styling #}
+                           class="settings-button"
                            role="button">Export setlists.json</a>
                     </div>
                 </div>
@@ -77,10 +75,20 @@
             </div>
             <div class="settings-section">
                 <h3>File System & Cache</h3>
-                 <div class="setting-row"><label>Audio Files Folder:</label><button id="open-audio-dir" class="settings-button">Open Audio Directory</button></div>
-                 <p class="setting-hint">Opens the system folder containing uploaded audio tracks.</p>
+                 <div class="setting-row">
+                    <label for="custom-audio-directory-path">Audio Files Folder:</label>
+                    <input type="text" id="custom-audio-directory-path" class="settings-input" placeholder="e.g., static/audio or /mnt/usb_drive/audio">
+                    <button id="browse-audio-directory-btn" class="settings-button" style="margin-left: 5px;">Browse...</button>
+                    <button id="set-audio-directory-btn" class="settings-button action" style="margin-left: 5px;">Set Path</button>
+                 </div>
+                 <div id="audio-directory-status" class="save-status setting-status-message" style="margin-left: 130px;"></div>
+                 <p class="setting-hint" style="margin-left: 130px;">Default: 'static/audio'. Path can be relative to app or absolute. Existing files are NOT moved.</p>
+
+                 <div class="setting-row" style="margin-top:15px;"><label>Open Current Audio Dir:</label><button id="open-audio-dir" class="settings-button">Open Folder</button></div>
+                 <p class="setting-hint" style="margin-left: 130px;">Opens the currently configured audio tracks folder.</p>
+
                  <div class="setting-row" style="margin-top:15px;"><label>Application Cache:</label><button id="clear-cache" class="settings-button">Clear Application Cache</button></div>
-                 <p class="setting-hint">Clears temporary server caches. Does not delete data files.</p>
+                 <p class="setting-hint" style="margin-left: 130px;">Clears temporary server caches. Does not delete data files.</p>
             </div>
         </div>
 
@@ -89,9 +97,9 @@
             <div class="settings-section">
                 <p class="setting-hint" style="color: #e74c3c; font-weight: bold;">Irreversible actions. Proceed with caution.</p>
                 <div class="setting-row"><label>Reset All Data:</label><button id="factory-reset" class="settings-button danger">Factory Reset</button></div>
-                <p class="setting-hint">Deletes ALL songs, setlists, audio files, and resets settings.</p>
+                <p class="setting-hint">Deletes ALL songs, setlists, audio files, and resets settings (including audio directory to default).</p>
                 <div class="setting-row" style="margin-top:15px;"><label>Delete All Songs:</label><button id="delete-all-songs" class="settings-button danger">Delete All Songs</button></div>
-                <p class="setting-hint">Deletes ALL songs and audio files. Setlists are emptied.</p>
+                <p class="setting-hint">Deletes ALL songs and their associated audio files from the current audio directory. Setlists are emptied.</p>
             </div>
         </div>
     </div> {# End #settings-editor #}

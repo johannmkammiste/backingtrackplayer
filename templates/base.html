@@ -27,6 +27,21 @@
         </div>
     </div>
     <div id="notification-container"></div>
+
+    <div id="custom-confirm-modal" class="modal" style="display: none;">
+        <div class="modal-content confirm-modal-content">
+            <div class="modal-header">
+                <h4 id="custom-confirm-title">Confirm Action</h4>
+                </div>
+            <div class="modal-body">
+                <p id="custom-confirm-message">Are you sure you want to proceed?</p>
+            </div>
+            <div class="modal-footer confirm-modal-footer">
+                <button id="custom-confirm-btn-yes" class="modal-button confirm">Yes</button>
+                <button id="custom-confirm-btn-no" class="modal-button cancel">No</button>
+            </div>
+        </div>
+    </div>
     {% block scripts %}
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% if request.path == '/songs' %}

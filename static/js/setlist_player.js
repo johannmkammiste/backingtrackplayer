@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const setlistTitle = document.getElementById('setlist-player-title');
-    const songsList = document.getElementById('setlist-songs');
+    const songsListEl = document.getElementById('setlist-songs'); // Renamed for clarity
     const currentSongName = document.getElementById('current-song-name');
     const currentSongBpm = document.getElementById('current-song-bpm');
     const timeRemainingDisplay = document.getElementById('time-remaining');
@@ -8,32 +8,40 @@ document.addEventListener('DOMContentLoaded', function() {
     const playBtn = document.getElementById('play-btn');
     const stopBtn = document.getElementById('stop-btn');
     const nextBtn = document.getElementById('next-btn');
+    // const keyboardStatusEl = document.getElementById('keyboard-status'); // If you need to update this
 
     let currentSetlistId = null;
     let currentSongIndex = 0;
-    let currentSetlist = { songs: [] };
-    let isPlayingOrLoading = false;
-    let isActivelyPreloading = false;
-    let preloadedSongId = null;
+    let currentSetlist = { songs: [] }; // Store song details including duration
+    let isPlayingOrLoading = false; // True if playing or a play/preload action is in progress
+    let isActivelyPreloading = false; // Specifically for the preload state
+    let preloadedSongId = null; // ID of the song that has been successfully preloaded
     let timerInterval = null;
-    let currentSongDuration = 0;
+    // let currentSongDuration = 0; // Already available in currentSetlist.songs[currentSongIndex].duration
     let remainingSeconds = 0;
-    let currentPreloadController = null;
+    let currentPreloadController = null; // AbortController for preloading
 
-    // Initialize player
+    function _showGlobalNotification(message, type = 'info') {
+        if (typeof window.showGlobalNotification === 'function') {
+            window.showGlobalNotification(message, type);
+        } else {
+            console.warn('setlist_player.js: window.showGlobalNotification function not found. Using alert as fallback.');
+            alert(`${type.toUpperCase()}: ${message}`);
+        }
+    }
+
     const pathParts = window.location.pathname.split('/');
     currentSetlistId = parseInt(pathParts[pathParts.length - 2]);
 
     if (isNaN(currentSetlistId)) {
-        console.error('Invalid setlist ID');
-        currentSongName.textContent = "Error: Invalid Setlist ID";
-        [prevBtn, playBtn, stopBtn, nextBtn].forEach(btn => btn.disabled = true);
+        console.error('Invalid setlist ID from URL.');
+        if(currentSongName) currentSongName.textContent = "Error: Invalid Setlist ID";
+        [prevBtn, playBtn, stopBtn, nextBtn].forEach(btn => { if(btn) btn.disabled = true; });
         return;
     }
 
     initPlayer();
 
-    // Helper functions
     function formatTime(totalSeconds) {
         if (isNaN(totalSeconds) || totalSeconds < 0) return "--:--";
         const minutes = Math.floor(totalSeconds / 60);
@@ -42,12 +50,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function startTimer(duration) {
-        stopTimer();
+        stopTimer(); // Clear any existing timer
         if (isNaN(duration) || duration <= 0) {
-            updateTimerDisplay(0);
-            return;
+            updateTimerDisplay(0); return;
         }
-        currentSongDuration = duration;
         remainingSeconds = Math.round(duration);
         updateTimerDisplay(remainingSeconds);
         timerInterval = setInterval(() => {
@@ -55,19 +61,19 @@ document.addEventListener('DOMContentLoaded', function() {
             updateTimerDisplay(remainingSeconds);
             if (remainingSeconds <= 0) {
                 stopTimer();
+                // Optionally auto-advance or stop, handled by playback logic
             }
         }, 1000);
     }
 
     function stopTimer() {
-        if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-        }
+        if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        // Update display to show song length when stopped and not preloading/playing
         if (!isPlayingOrLoading && currentSetlist.songs[currentSongIndex]) {
-            timeRemainingDisplay.textContent = `Length: ${formatTime(currentSetlist.songs[currentSongIndex].duration || 0)}`;
+            const songDuration = currentSetlist.songs[currentSongIndex].duration || 0;
+            if(timeRemainingDisplay) timeRemainingDisplay.textContent = `Length: ${formatTime(songDuration)}`;
         } else if (!isPlayingOrLoading) {
-            timeRemainingDisplay.textContent = "Length: --:--";
+            if(timeRemainingDisplay) timeRemainingDisplay.textContent = "Length: --:--";
         }
         remainingSeconds = 0;
     }
@@ -78,68 +84,56 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Core player functions
     async function triggerPreload(songIndexToPreload) {
-        if (currentPreloadController) {
-            currentPreloadController.abort();
-        }
+        if (currentPreloadController) currentPreloadController.abort(); // Abort previous preload
         currentPreloadController = new AbortController();
         const signal = currentPreloadController.signal;
 
         if (songIndexToPreload < 0 || songIndexToPreload >= currentSetlist.songs.length) {
-            currentPreloadController = null;
-            return;
+            currentPreloadController = null; return;
         }
-
         const songToPreload = currentSetlist.songs[songIndexToPreload];
         if (!songToPreload || !songToPreload.id) {
-            currentPreloadController = null;
-            return;
+            currentPreloadController = null; return;
+        }
+        if (preloadedSongId === songToPreload.id && !isActivelyPreloading) { // Already preloaded and not currently in another preload action
+            currentPreloadController = null; return;
         }
 
-        if (preloadedSongId === songToPreload.id && !isActivelyPreloading) {
-            currentPreloadController = null;
-            return;
-        }
-
-        console.log(`Preloading song: '${songToPreload.name}'`);
+        console.log(`Preloading song: '${songToPreload.name}' (ID: ${songToPreload.id})`);
         isActivelyPreloading = true;
-        preloadedSongId = null;
-        if (!isPlayingOrLoading) {
+        preloadedSongId = null; // Invalidate previous preload ID
+
+        if (!isPlayingOrLoading && playBtn) { // Update button only if not already playing/loading
             playBtn.disabled = true;
             playBtn.textContent = '⏳ Preloading...';
         }
-        showNotification(`Preloading '${songToPreload.name}'...`, 'info');
+        _showGlobalNotification(`Preloading '${songToPreload.name}'...`, 'info');
 
         try {
             const response = await fetch(`/api/setlists/${currentSetlistId}/song/${songToPreload.id}/preload`, {
-                method: 'POST',
-                signal: signal
+                method: 'POST', signal: signal
             });
             const data = await response.json();
-
+            if (signal.aborted) { console.log('Preload aborted for', songToPreload.name); return; }
             if (!response.ok || !data.success) {
-                if (signal.aborted) return;
                 throw new Error(data.error || `Failed to preload '${songToPreload.name}'`);
             }
-
-            preloadedSongId = data.preloaded_song_id;
-            console.log(`Successfully preloaded ${preloadedSongId}`);
-            showNotification(`'${songToPreload.name}' is ready.`, 'success');
-
+            preloadedSongId = data.preloaded_song_id; // Store the ID of the successfully preloaded song
+            console.log(`Successfully preloaded song ID ${preloadedSongId} ('${songToPreload.name}')`);
+            _showGlobalNotification(`'${songToPreload.name}' is ready.`, 'success');
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('Error in triggerPreload:', error);
-                showNotification(error.message, 'error');
-                preloadedSongId = null;
+                _showGlobalNotification(error.message, 'error');
+                preloadedSongId = null; // Clear on error
             }
         } finally {
             if (currentPreloadController && currentPreloadController.signal === signal) {
-                currentPreloadController = null;
+                currentPreloadController = null; // Clear controller if this was the one finishing
             }
             isActivelyPreloading = false;
-
-            if (!isPlayingOrLoading && !isActivelyPreloading) {
+            if (!isPlayingOrLoading && playBtn) { // Re-enable play button if appropriate
                 playBtn.disabled = false;
                 playBtn.textContent = '▶ Play';
             }
@@ -148,51 +142,53 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function playCurrentSong() {
         if (isActivelyPreloading) {
-            showNotification("Please wait, song is preloading...", "info");
-            return;
+            _showGlobalNotification("Please wait, song is preloading...", "info"); return;
         }
-        if (isPlayingOrLoading) return;
+        if (isPlayingOrLoading) return; // Already playing or loading to play
         if (currentSetlist.songs.length === 0 || currentSongIndex >= currentSetlist.songs.length) {
-            showNotification("No valid song selected.", "warning");
-            return;
+            _showGlobalNotification("No valid song selected or end of setlist.", "warning"); return;
         }
 
-        isPlayingOrLoading = true;
+        isPlayingOrLoading = true; // Set loading state
         const songToPlay = currentSetlist.songs[currentSongIndex];
-        playBtn.disabled = true;
-        playBtn.textContent = '⏳ Loading...';
+        if(playBtn) { playBtn.disabled = true; playBtn.textContent = '⏳ Loading...'; }
 
         try {
-            const response = await fetch(`/api/setlists/${currentSetlistId}/play`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ current_song_index: currentSongIndex })
-            });
-            const responseData = await response.json();
-
-            if (!response.ok) {
-                throw new Error(responseData.error || `HTTP error! status: ${response.status}`);
+            // Ensure the correct song is preloaded before playing, or play directly
+            if (preloadedSongId !== songToPlay.id) {
+                _showGlobalNotification(`Preloading '${songToPlay.name}' before playback...`, 'info');
+                await triggerPreload(currentSongIndex); // Await preload
+                if (preloadedSongId !== songToPlay.id) { // Check if preload was successful for THIS song
+                    throw new Error(`Preload failed for '${songToPlay.name}', cannot play.`);
+                }
             }
 
-            if (responseData.success && responseData.current_song_index === currentSongIndex) {
-                currentSongName.textContent = responseData.song_name;
-                currentSongBpm.textContent = `BPM: ${responseData.song_tempo}`;
-                setActiveSong(currentSongIndex);
-                playBtn.textContent = '⏸ Playing';
-                playBtn.disabled = false;
-                startTimer(responseData.duration);
-                preloadedSongId = responseData.current_song_id;
+            const response = await fetch(`/api/setlists/${currentSetlistId}/play`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ current_song_index: currentSongIndex }) // Backend uses this to confirm
+            });
+            const responseData = await response.json();
+            if (!response.ok) throw new Error(responseData.error || `HTTP error! status: ${response.status}`);
+            if (responseData.success && responseData.current_song_id === songToPlay.id) {
+                if(currentSongName) currentSongName.textContent = responseData.song_name;
+                if(currentSongBpm) currentSongBpm.textContent = `BPM: ${responseData.song_tempo}`;
+                setActiveSongUI(currentSongIndex);
+                if(playBtn) playBtn.textContent = '⏸ Playing'; // Now it's playing
+                startTimer(responseData.duration); // responseData.duration should be from backend
+                // isPlayingOrLoading remains true
             } else {
-                throw new Error(responseData.error || 'Playback failed');
+                throw new Error(responseData.error || 'Playback initiation failed on backend.');
             }
         } catch (error) {
             console.error('Error in playCurrentSong:', error);
-            showNotification(`Playback Error: ${error.message}`, 'error');
-            isPlayingOrLoading = false;
-            playBtn.textContent = '▶ Play';
-            playBtn.disabled = false;
-            stopTimer();
-            updateNowPlaying(songToPlay);
+            _showGlobalNotification(`Playback Error: ${error.message}`, 'error');
+            isPlayingOrLoading = false; // Reset state on error
+            if(playBtn) { playBtn.textContent = '▶ Play'; playBtn.disabled = false; }
+            stopTimer(); // Ensure timer is stopped
+            updateNowPlayingUI(songToPlay); // Revert UI to show current song as stopped
+        } finally {
+            if(playBtn) playBtn.disabled = false; // Re-enable button unless still playing
+            // isPlayingOrLoading is handled by success or error path
         }
     }
 
@@ -200,195 +196,159 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Stop playback requested.");
         const songAtStop = currentSetlist.songs[currentSongIndex];
 
-        if (currentPreloadController) {
-            currentPreloadController.abort();
-            currentPreloadController = null;
-        }
+        if (currentPreloadController) { currentPreloadController.abort(); currentPreloadController = null; }
         isActivelyPreloading = false;
-
         stopTimer();
 
-        if (!isPlayingOrLoading && playBtn.textContent === '▶ Play') {
-            playBtn.textContent = '▶ Play';
-            playBtn.disabled = false;
-            stopBtn.disabled = false;
-            if (songAtStop) updateNowPlaying(songAtStop);
+        if (!isPlayingOrLoading && playBtn && playBtn.textContent === '▶ Play') { // Already stopped
+            if(playBtn) playBtn.disabled = false;
+            if(stopBtn) stopBtn.disabled = false; // Ensure stop button is enabled if it was disabled
+            if (songAtStop) updateNowPlayingUI(songAtStop);
             return;
         }
 
-        isPlayingOrLoading = false;
-        stopBtn.disabled = true;
-        stopBtn.textContent = 'Stopping...';
-        playBtn.textContent = '▶ Play';
-        playBtn.disabled = false;
+        const wasPlaying = isPlayingOrLoading;
+        isPlayingOrLoading = false; // Set state to not playing
+        if(stopBtn) { stopBtn.disabled = true; stopBtn.textContent = 'Stopping...';}
+        if(playBtn) { playBtn.textContent = '▶ Play'; playBtn.disabled = false; }
 
         try {
             const response = await fetch('/api/stop', { method: 'POST' });
             const data = await response.json();
             if (!response.ok || !data.success) {
-                console.warn("Backend /api/stop reported failure:", data.error || "Unknown");
+                console.warn("Backend /api/stop reported failure or no action:", data.error || "Unknown");
+                 if(wasPlaying) _showGlobalNotification("Stop command sent, but backend reported an issue.", "warning");
+            } else {
+                if(wasPlaying) _showGlobalNotification("Playback stopped.", "info");
             }
         } catch (error) {
             console.error('Error calling /api/stop:', error);
-            showNotification('Error stopping playback: ' + error.message, 'error');
+            _showGlobalNotification('Error stopping playback: ' + error.message, 'error');
         } finally {
-            playBtn.textContent = '▶ Play';
-            playBtn.disabled = false;
-            stopBtn.disabled = false;
-            stopBtn.textContent = '⏹ Stop';
-            isPlayingOrLoading = false;
-
-            if (songAtStop) {
-                updateNowPlaying(songAtStop);
-            } else if (currentSetlist.songs.length > 0) {
-                updateNowPlaying(currentSetlist.songs[0]);
-            } else {
-                timeRemainingDisplay.textContent = "Length: --:--";
-            }
+            if(playBtn) { playBtn.textContent = '▶ Play'; playBtn.disabled = false; }
+            if(stopBtn) { stopBtn.disabled = false; stopBtn.textContent = '⏹ Stop'; }
+            // isPlayingOrLoading is already false
+            if (songAtStop) updateNowPlayingUI(songAtStop);
+            else if (currentSetlist.songs.length > 0) updateNowPlayingUI(currentSetlist.songs[0]); // Default to first song if current is undefined
+            else if(timeRemainingDisplay) timeRemainingDisplay.textContent = "Length: --:--";
         }
     }
 
     async function handleNextSong() {
         if (currentSetlist.songs.length === 0) return;
-
-        if (isPlayingOrLoading || isActivelyPreloading) {
-            await stopPlayback();
-        }
-        if (isPlayingOrLoading || isActivelyPreloading) return;
+        if (isPlayingOrLoading || isActivelyPreloading) await stopPlayback(); // Stop current before moving
+        if (isPlayingOrLoading || isActivelyPreloading) return; // If stop failed or still busy
 
         let nextIndex = currentSongIndex + 1;
         if (nextIndex >= currentSetlist.songs.length) {
-            showNotification('Reached end of setlist.', 'info');
+            _showGlobalNotification('Reached end of setlist.', 'info');
+            // Optional: loop back to start or just stay on last song
+            // nextIndex = 0; // Loop to start
+            // For now, just stay on last and allow re-preloading it if needed
             nextIndex = currentSetlist.songs.length - 1;
-            if (currentSongIndex === nextIndex) {
-                triggerPreload(currentSongIndex);
+            if (currentSongIndex === nextIndex && currentSetlist.songs[nextIndex]) { // If already on last song
+                 updateNowPlayingUI(currentSetlist.songs[nextIndex]);
+                 triggerPreload(nextIndex); // Re-preload current (last) song
                 return;
             }
         }
-
         currentSongIndex = nextIndex;
-        setActiveSong(currentSongIndex);
-        updateNowPlaying(currentSetlist.songs[currentSongIndex]);
-        triggerPreload(currentSongIndex);
+        setActiveSongUI(currentSongIndex);
+        updateNowPlayingUI(currentSetlist.songs[currentSongIndex]);
+        triggerPreload(currentSongIndex); // Preload the new current song
     }
 
     async function handlePreviousSong() {
         if (currentSetlist.songs.length === 0) return;
-
-        if (isPlayingOrLoading || isActivelyPreloading) {
-            await stopPlayback();
-        }
+        if (isPlayingOrLoading || isActivelyPreloading) await stopPlayback();
         if (isPlayingOrLoading || isActivelyPreloading) return;
 
         let prevIndex = currentSongIndex - 1;
         if (prevIndex < 0) {
-            showNotification('Already at the first song.', 'info');
-            prevIndex = 0;
-            if (currentSongIndex === prevIndex) {
-                triggerPreload(currentSongIndex);
+            _showGlobalNotification('Already at the first song.', 'info');
+            prevIndex = 0; // Stay at first song
+             if (currentSongIndex === prevIndex && currentSetlist.songs[prevIndex]) { // If already on first song
+                 updateNowPlayingUI(currentSetlist.songs[prevIndex]);
+                 triggerPreload(prevIndex); // Re-preload current (first) song
                 return;
             }
         }
-
         currentSongIndex = prevIndex;
-        setActiveSong(currentSongIndex);
-        updateNowPlaying(currentSetlist.songs[currentSongIndex]);
+        setActiveSongUI(currentSongIndex);
+        updateNowPlayingUI(currentSetlist.songs[currentSongIndex]);
         triggerPreload(currentSongIndex);
     }
 
     function initPlayer() {
-        const songItems = document.querySelectorAll('.song-item');
-        currentSetlist.songs = Array.from(songItems).map(item => {
+        const songItemsFromDOM = document.querySelectorAll('#setlist-songs .song-item');
+        currentSetlist.songs = Array.from(songItemsFromDOM).map(item => {
             const nameEl = item.querySelector('.song-name');
-            const detailsEl = item.querySelector('.song-details');
+            const detailsEl = item.querySelector('.song-details'); // Contains BPM and original duration
             const songId = parseInt(item.dataset.songId);
-            const duration = parseFloat(item.dataset.duration) || 0;
+            const duration = parseFloat(item.dataset.duration) || 0; // Duration in seconds from backend
             const tempoMatch = detailsEl ? detailsEl.textContent.match(/(\d+)\s*BPM/i) : null;
-
-            if (!nameEl || isNaN(songId) || !tempoMatch) {
-                return null;
-            }
-
-            return {
-                id: songId,
-                name: nameEl.textContent,
-                tempo: parseInt(tempoMatch[1]),
-                duration: duration
-            };
+            if (!nameEl || isNaN(songId) || !tempoMatch) return null;
+            return { id: songId, name: nameEl.textContent, tempo: parseInt(tempoMatch[1]), duration: duration };
         }).filter(song => song !== null);
 
         if (currentSetlist.songs.length === 0) {
-            currentSongName.textContent = "Setlist is empty";
-            [prevBtn, playBtn, stopBtn, nextBtn].forEach(btn => btn.disabled = true);
+            if(currentSongName) currentSongName.textContent = "Setlist is empty";
+            [prevBtn, playBtn, stopBtn, nextBtn].forEach(btn => { if(btn) btn.disabled = true; });
         } else {
-            renderSongsList();
-            setActiveSong(0);
-            updateNowPlaying(currentSetlist.songs[0]);
-            triggerPreload(0);
+            attachSongItemClickListeners();
+            setActiveSongUI(0); // currentSongIndex is already 0
+            updateNowPlayingUI(currentSetlist.songs[0]);
+            triggerPreload(0); // Preload the first song
         }
 
-        playBtn.addEventListener('click', playCurrentSong);
-        stopBtn.addEventListener('click', stopPlayback);
-        prevBtn.addEventListener('click', handlePreviousSong);
-        nextBtn.addEventListener('click', handleNextSong);
+        if(playBtn) playBtn.addEventListener('click', playCurrentSong);
+        if(stopBtn) stopBtn.addEventListener('click', stopPlayback);
+        if(prevBtn) prevBtn.addEventListener('click', handlePreviousSong);
+        if(nextBtn) nextBtn.addEventListener('click', handleNextSong);
     }
 
-    function renderSongsList() {
-        document.querySelectorAll('.song-item').forEach((item) => {
+    function attachSongItemClickListeners() {
+        document.querySelectorAll('#setlist-songs .song-item').forEach((item) => {
             const songId = parseInt(item.dataset.songId);
-            if (!currentSetlist.songs.some(s => s.id === songId)) {
-                return;
-            }
+            const songInSetlist = currentSetlist.songs.find(s => s.id === songId);
+            if (!songInSetlist) return; // Should not happen if DOM matches currentSetlist.songs
 
             item.addEventListener('click', async () => {
                 const clickedSongIndex = currentSetlist.songs.findIndex(s => s.id === songId);
                 if (clickedSongIndex === -1) return;
-
-                if (currentSongIndex === clickedSongIndex &&
-                    (isPlayingOrLoading || playBtn.textContent === '⏸ Playing')) {
-                    return;
+                if (currentSongIndex === clickedSongIndex && (isPlayingOrLoading || (playBtn && playBtn.textContent === '⏸ Playing'))) {
+                    return; // Already selected and playing/loading
                 }
-
-                if (isPlayingOrLoading || isActivelyPreloading) {
-                    await stopPlayback();
-                }
-                if (isPlayingOrLoading || isActivelyPreloading) return;
+                if (isPlayingOrLoading || isActivelyPreloading) await stopPlayback();
+                if (isPlayingOrLoading || isActivelyPreloading) return; // If stop failed or still busy
 
                 currentSongIndex = clickedSongIndex;
-                setActiveSong(currentSongIndex);
-                updateNowPlaying(currentSetlist.songs[currentSongIndex]);
+                setActiveSongUI(currentSongIndex);
+                updateNowPlayingUI(currentSetlist.songs[currentSongIndex]);
                 triggerPreload(currentSongIndex);
             });
         });
     }
 
-    function setActiveSong(index) {
-        document.querySelectorAll('.song-item').forEach((item, i) => {
+    function setActiveSongUI(index) {
+        document.querySelectorAll('#setlist-songs .song-item').forEach((item, i) => {
             item.classList.toggle('active', i === index);
         });
-        const activeItem = document.querySelector(`.song-item.active`);
+        const activeItem = document.querySelector('#setlist-songs .song-item.active');
         if (activeItem) activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    function updateNowPlaying(song) {
+    function updateNowPlayingUI(song) {
         if (!song) {
-            currentSongName.textContent = "Error: Song data missing";
-            currentSongBpm.textContent = "BPM: --";
-            timeRemainingDisplay.textContent = "Length: --:--";
+            if(currentSongName) currentSongName.textContent = "Error: Song data missing";
+            if(currentSongBpm) currentSongBpm.textContent = "BPM: --";
+            if(timeRemainingDisplay) timeRemainingDisplay.textContent = "Length: --:--";
             return;
         }
-        currentSongName.textContent = song.name;
-        currentSongBpm.textContent = `BPM: ${song.tempo}`;
-        if (!isPlayingOrLoading && !isActivelyPreloading && !timerInterval) {
-            timeRemainingDisplay.textContent = `Length: ${formatTime(song.duration || 0)}`;
-        }
-    }
-
-    function showNotification(message, type = 'info') {
-        if (typeof window.showNotification === 'function') {
-            window.showNotification(message, type);
-        } else {
-            alert(`${type.toUpperCase()}: ${message}`);
+        if(currentSongName) currentSongName.textContent = song.name;
+        if(currentSongBpm) currentSongBpm.textContent = `BPM: ${song.tempo}`;
+        if (!isPlayingOrLoading && !isActivelyPreloading && !timerInterval) { // Only update to length if truly idle
+             if(timeRemainingDisplay) timeRemainingDisplay.textContent = `Length: ${formatTime(song.duration || 0)}`;
         }
     }
 });

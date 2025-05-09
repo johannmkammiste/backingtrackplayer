@@ -1,8 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Only execute on setlists page
     if (!document.getElementById('setlist-editor')) return;
 
-    // DOM Elements
     const addSetlistBtn = document.getElementById('add-setlist-btn');
     const emptyState = document.getElementById('empty-state');
     const setlistForm = document.getElementById('setlist-form');
@@ -21,80 +19,69 @@ document.addEventListener('DOMContentLoaded', function() {
     let allSongs = [];
     let currentSetlistSongs = [];
 
-    // Initialize the page
     initSetlistsPage();
 
     function initSetlistsPage() {
         loadAllSongs().then(() => {
             setupSetlistItemClickHandlers();
-
-            // If there are setlists, load the first one by default
             const firstSetlist = document.querySelector('.setlist-item');
             if (firstSetlist) {
                 firstSetlist.click();
+            } else {
+                showEmptyState();
             }
         });
     }
 
     async function loadAllSongs() {
         try {
-            const response = await fetch('/api/songs', {
-                headers: { 'Accept': 'application/json' }
-            });
-            if (!response.ok) throw new Error('Network response was not ok');
+            const response = await fetch('/api/songs', { headers: { 'Accept': 'application/json' } });
+            if (!response.ok) throw new Error('Network response was not ok for loading songs');
             const data = await response.json();
             allSongs = data.songs || [];
-            console.log('Loaded songs:', allSongs);
         } catch (error) {
             console.error('Error loading songs:', error);
+            _showGlobalNotification('Error loading available songs list.', 'error');
         }
     }
 
     function setupSetlistItemClickHandlers() {
-        document.querySelector('.setlists-list').addEventListener('click', function(e) {
-            const setlistItem = e.target.closest('.setlist-item');
-            if (setlistItem) {
-                // Remove active class from all items
-                document.querySelectorAll('.setlist-item').forEach(i => {
-                    i.classList.remove('active');
-                });
-
-                // Add active class to clicked item
-                setlistItem.classList.add('active');
-
-                // Load the setlist
-                loadSetlist(parseInt(setlistItem.dataset.setlistId));
-            }
-        });
+        const setlistListContainer = document.querySelector('.setlists-list');
+        if (setlistListContainer) {
+            setlistListContainer.addEventListener('click', function(e) {
+                const setlistItem = e.target.closest('.setlist-item');
+                if (setlistItem) {
+                    document.querySelectorAll('.setlists-list .setlist-item.active').forEach(i => i.classList.remove('active'));
+                    setlistItem.classList.add('active');
+                    loadSetlist(parseInt(setlistItem.dataset.setlistId));
+                }
+            });
+        }
     }
 
     function updateSongsSelector() {
+        if (!songsSelector) return;
         songsSelector.innerHTML = '';
-
         allSongs.forEach(song => {
-            // Only show songs not already in the setlist
             if (!currentSetlistSongs.some(s => s.id === song.id)) {
                 const songItem = document.createElement('div');
                 songItem.className = 'song-selector-item';
-
                 songItem.innerHTML = `
-                    <input type="checkbox" id="song-${song.id}" class="song-checkbox">
-                    <label for="song-${song.id}" class="song-selector-name">${song.name} (${song.tempo} BPM)</label>
+                    <input type="checkbox" id="selector-song-${song.id}" data-song-id="${song.id}" class="song-checkbox">
+                    <label for="selector-song-${song.id}" class="song-selector-name">${song.name} (${song.tempo} BPM)</label>
                 `;
-
                 songsSelector.appendChild(songItem);
             }
         });
     }
 
     function updateSetlistSongsList() {
+        if (!setlistSongsList) return;
         setlistSongsList.innerHTML = '';
-
         currentSetlistSongs.forEach((song, index) => {
             const songItem = document.createElement('div');
             songItem.className = 'setlist-song-item';
             songItem.dataset.songId = song.id;
-
             songItem.innerHTML = `
                 <div class="setlist-song-name">${index + 1}. ${song.name} (${song.tempo} BPM)</div>
                 <div class="setlist-song-actions">
@@ -103,10 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="setlist-song-remove" title="Remove">✕</span>
                 </div>
             `;
-
             setlistSongsList.appendChild(songItem);
-
-            // Add event listeners for the new song item
             songItem.querySelector('.move-up').addEventListener('click', () => moveSongInSetlist(index, 'up'));
             songItem.querySelector('.move-down').addEventListener('click', () => moveSongInSetlist(index, 'down'));
             songItem.querySelector('.setlist-song-remove').addEventListener('click', () => removeSongFromSetlist(index));
@@ -114,233 +98,191 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createNewSetlist() {
-        currentSetlistId = null;
-        isNewSetlist = true;
-        currentSetlistSongs = [];
-        setlistTitle.textContent = 'New Setlist';
-        setlistNameInput.value = '';
-        updateSongsSelector();
-        updateSetlistSongsList();
-        emptyState.style.display = 'none';
-        setlistForm.style.display = 'block';
-
-        // Remove active class from all setlist items
-        document.querySelectorAll('.setlist-item').forEach(i => {
-            i.classList.remove('active');
-        });
+        currentSetlistId = null; isNewSetlist = true; currentSetlistSongs = [];
+        if(setlistTitle) setlistTitle.textContent = 'New Setlist';
+        if(setlistNameInput) setlistNameInput.value = '';
+        updateSongsSelector(); updateSetlistSongsList();
+        if(emptyState) emptyState.style.display = 'none';
+        if(setlistForm) setlistForm.style.display = 'block';
+        document.querySelectorAll('.setlists-list .setlist-item.active').forEach(i => i.classList.remove('active'));
     }
 
-    function loadSetlist(setlistId) {
-        console.log('Loading setlist:', setlistId);
-
-        fetch(`/api/setlists/${setlistId}`)
-            .then(response => {
-                if (!response.ok) throw new Error('Setlist not found');
-                return response.json();
-            })
-            .then(setlist => {
-                if (!setlist?.id) throw new Error('Invalid setlist data');
-
-                currentSetlistId = setlist.id;
-                setlistTitle.textContent = setlist.name;
-                setlistNameInput.value = setlist.name;
-                currentSetlistSongs = [];
-
-                // Match song IDs with full song data
-                setlist.song_ids?.forEach(songId => {
-                    const song = allSongs.find(s => s.id === songId);
-                    if (song) currentSetlistSongs.push(song);
-                });
-
-                updateSetlistSongsList();
-                updateSongsSelector();
-                emptyState.style.display = 'none';
-                setlistForm.style.display = 'block';
-            })
-            .catch(error => {
-                console.error('Error loading setlist:', error);
-                showEmptyState('Failed to load setlist');
+    async function loadSetlist(setlistId) {
+        if (!setlistForm) return;
+        setlistForm.classList.add('loading');
+        try {
+            const response = await fetch(`/api/setlists/${setlistId}`);
+            if (!response.ok) throw new Error('Setlist not found or server error');
+            const setlist = await response.json();
+            if (!setlist?.id) throw new Error('Invalid setlist data received');
+            currentSetlistId = setlist.id; isNewSetlist = false;
+            if(setlistTitle) setlistTitle.textContent = setlist.name;
+            if(setlistNameInput) setlistNameInput.value = setlist.name;
+            currentSetlistSongs = [];
+            (setlist.song_ids || []).forEach(songId => {
+                const song = allSongs.find(s => s.id === songId);
+                if (song) currentSetlistSongs.push(song);
             });
+            updateSetlistSongsList(); updateSongsSelector();
+            if(emptyState) emptyState.style.display = 'none';
+            setlistForm.style.display = 'block';
+        } catch (error) {
+            console.error('Error loading setlist:', error);
+            _showGlobalNotification(`Failed to load setlist: ${error.message}`, 'error');
+            showEmptyState('Failed to load setlist details.');
+        } finally {
+            if(setlistForm) setlistForm.classList.remove('loading');
+        }
     }
 
-    function showEmptyState(message = "Select a setlist from the list or create a new one") {
-        emptyState.innerHTML = `<p>${message}</p>`;
-        emptyState.style.display = 'block';
-        setlistForm.style.display = 'none';
+    function showEmptyState(message = "Select a setlist or create a new one.") {
+        if(emptyState) {emptyState.innerHTML = `<p>${message}</p>`; emptyState.style.display = 'flex';}
+        if(setlistForm) setlistForm.style.display = 'none';
+        currentSetlistId = null;
     }
 
     function addSelectedSongsToSetlist() {
+        if (!songsSelector) return;
         const selectedCheckboxes = songsSelector.querySelectorAll('.song-checkbox:checked');
-
         selectedCheckboxes.forEach(checkbox => {
-            const songId = parseInt(checkbox.id.replace('song-', ''));
+            const songId = parseInt(checkbox.dataset.songId); // Use data-song-id
             const song = allSongs.find(s => s.id === songId);
-
             if (song && !currentSetlistSongs.some(s => s.id === songId)) {
                 currentSetlistSongs.push(song);
             }
         });
-
-        updateSongsSelector();
-        updateSetlistSongsList();
+        updateSongsSelector(); updateSetlistSongsList();
     }
 
     function moveSongInSetlist(index, direction) {
         if (direction === 'up' && index > 0) {
-            // Swap with previous song
-            [currentSetlistSongs[index - 1], currentSetlistSongs[index]] =
-                [currentSetlistSongs[index], currentSetlistSongs[index - 1]];
+            [currentSetlistSongs[index - 1], currentSetlistSongs[index]] = [currentSetlistSongs[index], currentSetlistSongs[index - 1]];
         } else if (direction === 'down' && index < currentSetlistSongs.length - 1) {
-            // Swap with next song
-            [currentSetlistSongs[index], currentSetlistSongs[index + 1]] =
-                [currentSetlistSongs[index + 1], currentSetlistSongs[index]];
+            [currentSetlistSongs[index], currentSetlistSongs[index + 1]] = [currentSetlistSongs[index + 1], currentSetlistSongs[index]];
         }
-
         updateSetlistSongsList();
     }
 
     function removeSongFromSetlist(index) {
         currentSetlistSongs.splice(index, 1);
-        updateSongsSelector();
-        updateSetlistSongsList();
+        updateSongsSelector(); updateSetlistSongsList();
     }
 
+    // MODIFIED: To use showGlobalNotification
     async function saveSetlist() {
-        if (isSaving) return;
-        isSaving = true;
-        saveSetlistBtn.disabled = true;
-        saveSetlistBtn.textContent = 'Saving...';
+        if (isSaving || !setlistNameInput || !saveSetlistBtn) return;
 
-        if (!setlistNameInput.value.trim()) {
-            alert('Please enter a setlist name');
-            isSaving = false;
-            saveSetlistBtn.disabled = false;
-            saveSetlistBtn.textContent = 'Save Setlist';
+        const setlistName = setlistNameInput.value.trim();
+        if (!setlistName) {
+            _showGlobalNotification('Please enter a setlist name.', 'warning');
             return;
         }
+        isSaving = true; saveSetlistBtn.disabled = true; saveSetlistBtn.textContent = 'Saving...';
 
-        const setlistData = {
-            name: setlistNameInput.value,
-            song_ids: currentSetlistSongs.map(song => song.id)
-        };
-
+        const setlistData = { name: setlistName, song_ids: currentSetlistSongs.map(song => song.id) };
         try {
-            let response;
-
-            if (isNewSetlist) {
-                // Create new setlist
-                response = await fetch('/api/setlists', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(setlistData)
-                });
-            } else {
-                // Update existing setlist
-                response = await fetch(`/api/setlists/${currentSetlistId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(setlistData)
-                });
-            }
-
-            if (!response.ok) {
-                throw new Error('Failed to save setlist');
-            }
-
+            const url = isNewSetlist ? '/api/setlists' : `/api/setlists/${currentSetlistId}`;
+            const method = isNewSetlist ? 'POST' : 'PUT';
+            const response = await fetch(url, {
+                method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(setlistData)
+            });
             const savedSetlist = await response.json();
+            if (!response.ok) throw new Error(savedSetlist.error || 'Failed to save setlist');
 
-            // Update UI
-            setlistTitle.textContent = savedSetlist.name;
-            setlistNameInput.value = savedSetlist.name;
-
+            if(setlistTitle) setlistTitle.textContent = savedSetlist.name;
+            if(setlistNameInput) setlistNameInput.value = savedSetlist.name;
             if (isNewSetlist) {
-                // For new setlists, update the ID and add to sidebar
-                currentSetlistId = savedSetlist.id;
-                isNewSetlist = false;
+                currentSetlistId = savedSetlist.id; isNewSetlist = false;
                 addSetlistToSidebar(savedSetlist);
+                // Activate the new setlist in sidebar
+                document.querySelectorAll('.setlists-list .setlist-item.active').forEach(i => i.classList.remove('active'));
+                const newSidebarItem = document.querySelector(`.setlists-list .setlist-item[data-setlist-id="${currentSetlistId}"]`);
+                if (newSidebarItem) newSidebarItem.classList.add('active');
             } else {
-                // For existing setlists, update the sidebar item
                 updateSetlistInSidebar(savedSetlist);
             }
-
-            // Show success message
-            const successMsg = document.createElement('div');
-            successMsg.className = 'save-success';
-            successMsg.textContent = 'Changes saved!';
-            setlistForm.appendChild(successMsg);
-            setTimeout(() => successMsg.remove(), 2000);
-
+            _showGlobalNotification('Setlist saved successfully!', 'success');
         } catch (error) {
             console.error('Error saving setlist:', error);
-            alert('Failed to save setlist');
+            _showGlobalNotification(`Failed to save setlist: ${error.message}`, 'error');
         } finally {
-            isSaving = false;
-            saveSetlistBtn.disabled = false;
-            saveSetlistBtn.textContent = 'Save Setlist';
+            isSaving = false; saveSetlistBtn.disabled = false; saveSetlistBtn.textContent = 'Save Setlist';
         }
     }
 
     function addSetlistToSidebar(setlist) {
-        const setlistsList = document.querySelector('.setlists-list');
+        const setlistsListContainer = document.querySelector('.setlists-list');
+        if(!setlistsListContainer) return;
         const setlistItem = document.createElement('div');
         setlistItem.className = 'setlist-item';
         setlistItem.dataset.setlistId = setlist.id;
-
         setlistItem.innerHTML = `
             <span class="setlist-name">${setlist.name}</span>
-            <span class="song-count">${setlist.song_ids.length} songs</span>
-        `;
-
-        setlistsList.appendChild(setlistItem);
+            <span class="song-count">${(setlist.song_ids || []).length} songs</span>`;
+        setlistsListContainer.appendChild(setlistItem);
     }
 
     function updateSetlistInSidebar(setlist) {
-        const setlistItem = document.querySelector(`.setlist-item[data-setlist-id="${setlist.id}"]`);
+        const setlistItem = document.querySelector(`.setlists-list .setlist-item[data-setlist-id="${setlist.id}"]`);
         if (setlistItem) {
-            setlistItem.querySelector('.setlist-name').textContent = setlist.name;
-            setlistItem.querySelector('.song-count').textContent = `${setlist.song_ids.length} songs`;
+            if(setlistItem.querySelector('.setlist-name')) setlistItem.querySelector('.setlist-name').textContent = setlist.name;
+            if(setlistItem.querySelector('.song-count')) setlistItem.querySelector('.song-count').textContent = `${(setlist.song_ids || []).length} songs`;
         }
     }
 
-    function deleteSetlist() {
-        if (!currentSetlistId || isNewSetlist) return;
+    // MODIFIED: To use showCustomConfirm
+    async function deleteSetlist() {
+        if (!currentSetlistId || isNewSetlist) {
+            _showGlobalNotification('No setlist selected to delete.', 'warning');
+            return;
+        }
+        const setlistNameToDelete = setlistNameInput ? setlistNameInput.value : "this setlist";
+        const confirmed = await window.showCustomConfirm(
+            `Are you sure you want to delete the setlist "${setlistNameToDelete}"?`,
+            'Confirm Delete Setlist'
+        );
 
-        if (confirm('Are you sure you want to delete this setlist?')) {
-            fetch(`/api/setlists/${currentSetlistId}`, {
-                method: 'DELETE'
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Remove from sidebar
-                        const setlistItem = document.querySelector(`.setlist-item[data-setlist-id="${currentSetlistId}"]`);
-                        if (setlistItem) {
-                            setlistItem.remove();
-                        }
+        if (confirmed) {
+            try {
+                const response = await fetch(`/api/setlists/${currentSetlistId}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.error || 'Failed to delete setlist from server.');
 
-                        // Reset form
-                        currentSetlistId = null;
-                        showEmptyState();
-                    }
-                });
+                const itemToRemove = document.querySelector(`.setlists-list .setlist-item[data-setlist-id="${currentSetlistId}"]`);
+                if (itemToRemove) itemToRemove.remove();
+                showEmptyState('Setlist deleted successfully.');
+                _showGlobalNotification('Setlist deleted.', 'success');
+                currentSetlistId = null;
+            } catch (error) {
+                console.error('Error deleting setlist:', error);
+                _showGlobalNotification(`Failed to delete setlist: ${error.message}`, 'error');
+            }
+        } else {
+            _showGlobalNotification('Setlist deletion cancelled.', 'info');
         }
     }
 
     function playSetlist() {
-        if (!currentSetlistId || isNewSetlist) return;
-
-        // Navigate to the play page for this setlist
+        if (!currentSetlistId || isNewSetlist) {
+            _showGlobalNotification("Please save and select a setlist to play.", "warning");
+            return;
+        }
         window.location.href = `/setlists/${currentSetlistId}/play`;
     }
 
-    // Event Listeners
-    addSetlistBtn.addEventListener('click', createNewSetlist);
-    addSongToSetlistBtn.addEventListener('click', addSelectedSongsToSetlist);
-    saveSetlistBtn.addEventListener('click', saveSetlist);
-    deleteSetlistBtn.addEventListener('click', deleteSetlist);
-    playSetlistBtn.addEventListener('click', playSetlist);
+    if(addSetlistBtn) addSetlistBtn.addEventListener('click', createNewSetlist);
+    if(addSongToSetlistBtn) addSongToSetlistBtn.addEventListener('click', addSelectedSongsToSetlist);
+    if(saveSetlistBtn) saveSetlistBtn.addEventListener('click', saveSetlist);
+    if(deleteSetlistBtn) deleteSetlistBtn.addEventListener('click', deleteSetlist); // deleteSetlist is now async
+    if(playSetlistBtn) playSetlistBtn.addEventListener('click', playSetlist);
+
+    // Local helper to use window.showGlobalNotification
+    function _showGlobalNotification(message, type = 'info') {
+        if (typeof window.showGlobalNotification === 'function') {
+            window.showGlobalNotification(message, type);
+        } else {
+            console.warn('setlists.js: window.showGlobalNotification function not found. Using alert as fallback.');
+            alert(`${type.toUpperCase()}: ${message}`);
+        }
+    }
 });

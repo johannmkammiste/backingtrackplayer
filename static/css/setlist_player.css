@@ -1,13 +1,20 @@
+/* static/css/setlist_player.css */
+
 /* ===== Player Container ===== */
 .player-container {
     padding: 30px;
     height: 100%;
     overflow-y: auto;
     color: #ecf0f1;
+    display: flex; /* Added for centering controls */
+    flex-direction: column; /* Stack elements vertically */
+    justify-content: center; /* Center content vertically */
+    align-items: center; /* Center content horizontally */
 }
 
-/* ===== Sidebar Styles ===== */
-.setlist-sidebar {
+/* ===== Sidebar Styles (if they were here, they'd be adjusted, but they are in style.css or specific setlist.css) ===== */
+/* Assuming sidebar styles are managed elsewhere or are not the direct target for this change */
+.setlist-sidebar { /* Keeping this as it was in the provided file, though it might be in general style.css */
     padding: 20px;
     height: 100%;
     display: flex;
@@ -23,13 +30,14 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.songs-list {
+/* Styles for the song list in the sidebar (if applicable to this page's specific sidebar) */
+.songs-list { /* This class is generic, ensure it's the one for setlist player sidebar */
     flex: 1;
     overflow-y: auto;
     margin-top: 15px;
 }
 
-.song-item {
+.song-item { /* Also generic, assuming it's styled for this context */
     cursor: pointer;
     padding: 12px 15px;
     margin: 5px 0;
@@ -50,12 +58,12 @@
     border-left: 3px solid #3498db;
 }
 
-.song-name {
+.song-name { /* Generic */
     font-weight: 500;
     color: #ecf0f1;
 }
 
-.song-details {
+.song-details { /* Generic */
     color: #bdc3c7;
     font-size: 0.85rem;
 }
@@ -63,92 +71,148 @@
 /* ===== Now Playing Section ===== */
 .now-playing {
     background-color: rgba(0, 0, 0, 0.2);
-    padding: 20px;
-    border-radius: 4px;
-    margin-bottom: 30px;
+    padding: 25px; /* Increased padding */
+    border-radius: 6px; /* Slightly larger radius */
+    margin-bottom: 40px; /* Increased margin */
+    width: 100%;
+    max-width: 600px; /* Limit width for better centering */
+    text-align: center; /* Center text inside */
 }
 
 .now-playing h2 {
     color: #f1c40f;
-    margin-bottom: 10px;
-    font-size: 1.5rem;
+    margin-bottom: 15px; /* Increased margin */
+    font-size: 1.8rem; /* Increased font size */
 }
 
 .song-info {
     display: flex;
-    gap: 15px;
+    gap: 20px; /* Increased gap */
     color: #bdc3c7;
+    font-size: 1.1rem; /* Increased font size */
+    justify-content: center; /* Center song info items */
 }
 
 /* ===== Player Controls ===== */
 .player-controls {
     display: flex;
-    gap: 15px;
+    gap: 20px; /* Increased gap */
     justify-content: center;
+    margin-bottom: 30px; /* Add some margin below controls */
+    width: 100%;
+    max-width: 700px; /* Limit width for better centering */
 }
 
 .control-btn {
-    padding: 12px 24px;
-    font-size: 16px;
+    padding: 18px 30px; /* MODIFIED: Increased padding for larger buttons */
+    font-size: 1.5rem;  /* MODIFIED: Increased font size for icons/text */
+    min-width: 100px;   /* MODIFIED: Ensure a minimum width */
+    height: 70px;       /* MODIFIED: Set a fixed height for consistency */
+    display: flex;      /* MODIFIED: For centering content within button */
+    align-items: center;/* MODIFIED: Vertically center content */
+    justify-content: center; /* MODIFIED: Horizontally center content */
     border: none;
-    border-radius: 4px;
+    border-radius: 8px; /* MODIFIED: Slightly larger border radius */
     cursor: pointer;
     transition: all 0.2s ease;
     color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Added subtle shadow */
+    flex-grow: 1; /* Allow buttons to grow if space allows */
+    flex-basis: 0; /* Distribute space evenly */
 }
 
 .control-btn:hover {
-    transform: translateY(-2px);
+    transform: translateY(-2px) scale(1.02); /* Enhanced hover effect */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3); /* Enhanced shadow on hover */
+}
+.control-btn:active {
+    transform: translateY(0px) scale(0.98); /* Press down effect */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-#play-btn {
-    background-color: #2ecc71;
-}
 
-#play-btn:hover {
-    background-color: #27ae60;
-    box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
-}
+#play-btn { background-color: #2ecc71; }
+#play-btn:hover { background-color: #27ae60; box-shadow: 0 4px 8px rgba(46, 204, 113, 0.4); }
 
-#stop-btn {
-    background-color: #e74c3c;
-}
-
-#stop-btn:hover {
-    background-color: #c0392b;
-    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
-}
+#stop-btn { background-color: #e74c3c; }
+#stop-btn:hover { background-color: #c0392b; box-shadow: 0 4px 8px rgba(231, 76, 60, 0.4); }
 
 #previous-btn,
-#next-btn {
-    background-color: #3498db;
+#next-btn { background-color: #3498db; }
+#previous-btn:hover,
+#next-btn:hover { background-color: #2980b9; box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4); }
+
+
+/* Status Indicators */
+.status-indicators {
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    text-align: center;
 }
 
-#previous-btn:hover,
-#next-btn:hover {
-    background-color: #2980b9;
-    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
-}
 
 /* ===== Responsive Adjustments ===== */
 @media (max-width: 768px) {
-    .player-controls {
-        flex-wrap: wrap;
+    .player-container {
+        padding: 20px; /* Adjust padding for smaller screens */
+        justify-content: flex-start; /* Align to top on smaller screens */
     }
-
+    .now-playing {
+        margin-bottom: 30px;
+        padding: 20px;
+    }
+    .now-playing h2 {
+        font-size: 1.5rem;
+    }
+    .song-info {
+        font-size: 1rem;
+        gap: 15px;
+    }
+    .player-controls {
+        flex-wrap: wrap; /* Allow buttons to wrap */
+        gap: 15px; /* Adjust gap for wrapped buttons */
+        max-width: 100%; /* Allow controls to take full width */
+    }
     .control-btn {
-        flex: 1;
-        min-width: 120px;
+        padding: 15px 20px; /* Adjust padding for smaller buttons */
+        font-size: 1.2rem;  /* Adjust font size */
+        min-width: calc(50% - 10px); /* Two buttons per row, accounting for gap */
+        height: 60px;
+        flex-grow: 0; /* Don't allow uneven growth when wrapped */
     }
 }
 
 @media (max-width: 480px) {
-    .setlist-sidebar {
+    .player-container {
         padding: 15px;
     }
-
+    .now-playing {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .now-playing h2 {
+        font-size: 1.3rem;
+    }
+    .song-info {
+        font-size: 0.9rem;
+        flex-direction: column; /* Stack song info on very small screens */
+        gap: 5px;
+    }
+    .player-controls {
+        gap: 10px;
+    }
     .control-btn {
-        padding: 10px 15px;
-        font-size: 14px;
+        padding: 12px 15px;
+        font-size: 1.1rem; /* Further reduce font size */
+        min-width: calc(50% - 5px); /* Ensure two buttons fit, adjust for smaller gap */
+        height: 55px;
+    }
+    /* Make play/stop buttons potentially wider on very small screens if desired */
+    #play-btn, #stop-btn {
+        /* min-width: calc(60% - 5px); */ /* Example: make them slightly wider */
+    }
+    #previous-btn, #next-btn {
+        /* min-width: calc(40% - 5px); */
     }
 }

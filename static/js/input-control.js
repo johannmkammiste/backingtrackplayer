@@ -6,152 +6,153 @@ class InputControlService {
     constructor() {
         this.settings = {
             enabled: false,
-            shortcuts: {},
+            shortcuts: {}, // e.g., { "play_pause": "Space", "stop": "Escape" }
         };
         this.isLearning = false;
         this.actionToLearn = null;
-        this.statusIndicator = null; // Reference to status display element
+        this.statusIndicator = null;
+        this.saveStatusElement = null; // For keyboard save status messages
 
-        // Bind methods to ensure 'this' context is correct
         this._handleKeyDown = this._handleKeyDown.bind(this);
         this.saveSettings = this.saveSettings.bind(this);
         this.toggleEnabled = this.toggleEnabled.bind(this);
         this.startLearning = this.startLearning.bind(this);
 
-        console.log("InputControlService initialized");
+        // console.log("InputControlService initialized");
     }
 
-    /**
-     * Loads settings from the backend and sets up the listener.
-     */
+    // Helper to use window.showGlobalNotification or fallback
+    _notify(message, type = 'info', duration = 4000) {
+        if (typeof window.showGlobalNotification === 'function') {
+            window.showGlobalNotification(message, type, duration);
+        } else {
+            console.warn('input-control.js: window.showGlobalNotification not found. Using alert.');
+            alert(`[${type.toUpperCase()}] ${message}`);
+        }
+    }
+
+
     async loadSettings() {
-        console.log("Loading keyboard settings...");
+        // console.log("Loading keyboard settings...");
         try {
-            // Use the consolidated API endpoint which reads from midi_settings.json [cite: 1]
-            const response = await fetch('/api/settings/keyboard'); // This endpoint now handles the correct file
+            const response = await fetch('/api/settings/keyboard');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const loadedSettings = await response.json();
-            // Ensure defaults if backend returns partial data
-            this.settings.enabled = loadedSettings.enabled ?? false; // [cite: 1] Uses 'enabled' key
-            this.settings.shortcuts = loadedSettings.shortcuts || {}; // [cite: 1] Uses 'shortcuts' key
-            console.log("Keyboard settings loaded:", this.settings);
+            this.settings.enabled = loadedSettings.enabled ?? false;
+            this.settings.shortcuts = loadedSettings.shortcuts || {};
+            // console.log("Keyboard settings loaded:", this.settings);
 
             this.setupKeyListener();
             this.updateStatusIndicator();
+            if (document.getElementById('settings-editor')) { // Only update display if on settings page
+                this._updateSettingsDisplay();
+            }
 
         } catch (error) {
             console.error('Error loading keyboard settings:', error);
+            this._notify(`Error loading keyboard settings: ${error.message}`, 'error');
             this.settings.enabled = false;
             this.settings.shortcuts = {};
             this.setupKeyListener();
             this.updateStatusIndicator();
+             if (document.getElementById('settings-editor')) {
+                this._updateSettingsDisplay();
+            }
         }
     }
 
-    /**
-     * Saves the current settings (enabled, shortcuts) to the backend.
-     */
     async saveSettings() {
-        // Only save the keyboard-related parts [cite: 1]
         const payload = {
              enabled: this.settings.enabled,
              shortcuts: this.settings.shortcuts
         };
-        console.log("Saving keyboard settings:", payload);
+        // console.log("Saving keyboard settings:", payload);
+        if (this.saveStatusElement) this.saveStatusElement.textContent = 'Saving...';
+
         try {
-            const response = await fetch('/api/settings/keyboard', { // This endpoint now handles the correct file
+            const response = await fetch('/api/settings/keyboard', {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload), // Send only relevant parts
+                headers: { 'Content-Type': 'application/json', },
+                body: JSON.stringify(payload),
             });
             if (!response.ok) {
                  const errorData = await response.json().catch(() => ({ error: 'Unknown server error' }));
                  throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
-            const result = await response.json(); // Backend confirms saved state
-            console.log("Keyboard settings save confirmed by server:", result.settings);
-            // Optionally show a success message to the user based on result.success
+            const result = await response.json();
+            // console.log("Keyboard settings save confirmed by server:", result.settings);
+            if (this.saveStatusElement) {
+                this.saveStatusElement.textContent = 'Saved!';
+                this.saveStatusElement.className = 'save-status setting-status-message success active';
+                setTimeout(() => {
+                    if(this.saveStatusElement) {
+                        this.saveStatusElement.textContent = '';
+                        this.saveStatusElement.classList.remove('active', 'success');
+                    }
+                }, 3000);
+            }
         } catch (error) {
             console.error('Error saving keyboard settings:', error);
-            // Optionally show an error message to the user
-             showNotification(`Error saving keyboard settings: ${error.message}`, 'error'); // Assumes showNotification exists
+            this._notify(`Error saving keyboard settings: ${error.message}`, 'error');
+            if (this.saveStatusElement) {
+                this.saveStatusElement.textContent = `Error: ${error.message}`;
+                this.saveStatusElement.className = 'save-status setting-status-message error active';
+            }
         }
     }
 
-    /**
-     * Adds or removes the global keydown listener based on the enabled state.
-     */
     setupKeyListener() {
         document.removeEventListener('keydown', this._handleKeyDown);
-        if (this.settings.enabled) { // [cite: 1] Checks 'enabled' flag
-            console.log("Attaching keydown listener.");
+        if (this.settings.enabled) {
+            // console.log("Attaching keydown listener.");
             document.addEventListener('keydown', this._handleKeyDown);
         } else {
-            console.log("Removing keydown listener.");
+            // console.log("Removing keydown listener.");
         }
         this.updateStatusIndicator();
     }
 
-    /**
-     * Handles the global keydown event.
-     * @param {KeyboardEvent} event
-     */
     _handleKeyDown(event) {
         const targetTagName = event.target.tagName.toLowerCase();
-        if (['input', 'textarea', 'select'].includes(targetTagName)) {
+        if (['input', 'textarea', 'select'].includes(targetTagName) && !event.target.classList.contains('learn-keyboard-btn')) { // Allow if target is learn button
             return;
         }
 
         let isBoundKey = false;
 
         if (this.isLearning) {
-            event.preventDefault();
+            event.preventDefault(); event.stopPropagation(); // Important for learning mode
             this._assignShortcut(event);
             isBoundKey = true;
             return;
         }
 
-        if (!this.settings.enabled) return; // [cite: 1] Checks 'enabled' flag
+        if (!this.settings.enabled) return;
 
-        // Find matching action for the pressed key using the 'shortcuts' map [cite: 1]
         for (const [action, keyBinding] of Object.entries(this.settings.shortcuts)) {
             if (this._compareKeys(event, keyBinding)) {
                  isBoundKey = true;
-                 console.log(`Shortcut match: ${action} (${keyBinding})`);
+                 // console.log(`Shortcut match: ${action} (${keyBinding})`);
                  this._dispatchAction(action);
                  break;
             }
         }
-
-        if (isBoundKey) {
-             event.preventDefault();
-        }
+        if (isBoundKey) event.preventDefault();
     }
 
-    /**
-     * Compares a keyboard event with a stored key binding string.
-     * @param {KeyboardEvent} event
-     * @param {string} keyBinding - e.g., "Space", "ArrowRight", "KeyA", "Digit1"
-     * @returns {boolean}
-     */
     _compareKeys(event, keyBinding) {
         if (!keyBinding) return false;
-        if (keyBinding.startsWith('Key') || keyBinding.startsWith('Digit')) {
+        // Prioritize event.code for physical keys, event.key for special keys like "Space", "ArrowRight"
+        if (keyBinding.startsWith('Key') || keyBinding.startsWith('Digit') || keyBinding.startsWith('Numpad')) {
             return event.code === keyBinding;
         }
         return event.key === keyBinding;
     }
 
-    /**
-     * Triggers the corresponding application action based on the shortcut.
-     * @param {string} action - e.g., "play_pause", "stop"
-     */
     _dispatchAction(action) {
-        console.log(`Dispatching action: ${action}`);
+        // console.log(`Dispatching action: ${action}`);
         const playBtn = document.getElementById('play-btn');
         const stopBtn = document.getElementById('stop-btn');
         const prevBtn = document.getElementById('previous-btn');
@@ -159,83 +160,55 @@ class InputControlService {
 
         try {
             switch (action) {
-                case 'play_pause': // [cite: 1] Matches default 'shortcuts' keys
-                    if (playBtn) playBtn.click();
-                    else console.warn(`Button for action '${action}' not found.`);
-                    break;
-                case 'stop': // [cite: 1] Matches default 'shortcuts' keys
-                    if (stopBtn) stopBtn.click();
-                    else console.warn(`Button for action '${action}' not found.`);
-                    break;
-                case 'next': // [cite: 1] Matches default 'shortcuts' keys
-                    if (nextBtn) nextBtn.click();
-                    else console.warn(`Button for action '${action}' not found.`);
-                    break;
-                case 'previous': // [cite: 1] Matches default 'shortcuts' keys
-                    if (prevBtn) prevBtn.click();
-                    else console.warn(`Button for action '${action}' not found.`);
-                    break;
-                default:
-                    console.warn(`Unhandled action: ${action}`);
+                case 'play_pause': if (playBtn) playBtn.click(); break;
+                case 'stop': if (stopBtn) stopBtn.click(); break;
+                case 'next': if (nextBtn) nextBtn.click(); break;
+                case 'previous': if (prevBtn) prevBtn.click(); break;
+                default: console.warn(`Unhandled keyboard action: ${action}`);
             }
         } catch (error) {
             console.error(`Error executing action '${action}':`, error);
         }
     }
 
-    // --- Methods for Settings UI ---
-
-    /**
-     * Initializes the UI elements on the settings page.
-     */
     initSettingsUI() {
-        console.log("Initializing Settings UI for Keyboard Controls");
+        // console.log("Initializing Settings UI for Keyboard Controls");
         this.statusIndicator = document.getElementById('keyboard-status');
+        this.saveStatusElement = document.getElementById('keyboard-save-status');
 
-        this.loadSettings().then(() => {
-             this._updateSettingsDisplay();
 
+        this.loadSettings().then(() => { // loadSettings now updates display if on settings page
             const enabledCheckbox = document.getElementById('keyboard-enabled');
             if (enabledCheckbox) {
-                enabledCheckbox.checked = this.settings.enabled; // [cite: 1] Uses 'enabled' flag
-                enabledCheckbox.removeEventListener('change', this.toggleEnabled);
+                enabledCheckbox.checked = this.settings.enabled;
+                enabledCheckbox.removeEventListener('change', this.toggleEnabled); // Prevent multiple listeners
                 enabledCheckbox.addEventListener('change', this.toggleEnabled);
             }
-
              document.querySelectorAll('.learn-keyboard-btn').forEach(button => {
                 const action = button.dataset.action;
                 if (action) {
+                     button.removeEventListener('click', this.startLearning); // Prevent multiple
                      button.addEventListener('click', () => this.startLearning(action));
                  }
             });
         });
     }
 
-    /**
-     * Toggles the enabled state and saves settings.
-     * @param {Event} event - The change event from the checkbox.
-     */
     toggleEnabled(event) {
-        this.settings.enabled = event.target.checked; // [cite: 1] Uses 'enabled' flag
-        console.log("Keyboard enabled toggled:", this.settings.enabled);
+        this.settings.enabled = event.target.checked;
+        // console.log("Keyboard enabled toggled:", this.settings.enabled);
         this.setupKeyListener();
-        this.saveSettings(); // Saves the updated 'enabled' flag and existing 'shortcuts' [cite: 1]
+        this.saveSettings();
         this.updateStatusIndicator();
     }
 
-
-    /**
-     * Updates the display elements on the settings page.
-     */
     _updateSettingsDisplay() {
-         console.log("Updating settings display", this.settings.shortcuts);
-         // Update shortcut displays based on the 'shortcuts' map [cite: 1]
+         // console.log("Updating settings display", this.settings.shortcuts);
          for (const [action, keyBinding] of Object.entries(this.settings.shortcuts)) {
             const displayElement = document.getElementById(`shortcut-${action}-display`);
             if (displayElement) {
-                displayElement.textContent = this.formatKey(keyBinding) || 'Not Set';
+                displayElement.textContent = this.formatKeyForDisplay(keyBinding) || 'Not Set';
             }
-
             const learnButton = document.querySelector(`.learn-keyboard-btn[data-action="${action}"]`);
              if (learnButton) {
                  if (this.isLearning && this.actionToLearn === action) {
@@ -250,79 +223,79 @@ class InputControlService {
          this.updateStatusIndicator();
     }
 
-    /** Formats the key binding string for display */
-    formatKey(keyBinding) {
+    formatKeyForDisplay(keyBinding) {
         if (!keyBinding) return '';
-        if (keyBinding.startsWith('Key')) return keyBinding.substring(3);
-        if (keyBinding.startsWith('Digit')) return keyBinding.substring(5);
+        if (keyBinding === " ") return "Space"; // Special case for Space
+        if (keyBinding.startsWith('Key')) return keyBinding.substring(3); // KeyA -> A
+        if (keyBinding.startsWith('Digit')) return keyBinding.substring(5); // Digit1 -> 1
+        if (keyBinding.startsWith('Numpad')) return `Numpad ${keyBinding.substring(6)}`; // Numpad1 -> Numpad 1
+        // For Arrow keys, Escape, etc., event.key is usually descriptive enough
         return keyBinding;
     }
 
-    /**
-     * Puts the service into learning mode for a specific action.
-     * @param {string} action - The action to learn a shortcut for (e.g., "play_pause").
-     */
     startLearning(action) {
-        if (this.isLearning) {
-            this.stopLearning();
-        }
+        if (this.isLearning) this.stopLearning(false); // Stop previous learning without saving
         this.isLearning = true;
         this.actionToLearn = action;
-        console.log(`Learning shortcut for: ${action}`);
-        this._updateSettingsDisplay();
-        document.body.classList.add('is-learning-shortcut');
+        // console.log(`Learning shortcut for: ${action}`);
+        this._updateSettingsDisplay(); // Update button text to "Press Key..."
+        document.body.classList.add('is-learning-shortcut'); // Optional: for global styling
+        // Focus a relevant button to ensure keyboard events are captured if user clicks away
+        const learnButton = document.querySelector(`.learn-keyboard-btn[data-action="${action}"]`);
+        if(learnButton) learnButton.focus();
     }
 
-    /** Stops the learning mode */
-     stopLearning() {
+    stopLearning(save = true) { // Add save parameter
         this.isLearning = false;
         this.actionToLearn = null;
-        console.log("Stopped learning mode.");
-        this._updateSettingsDisplay();
+        // console.log("Stopped learning mode.");
         document.body.classList.remove('is-learning-shortcut');
+        if(save) this.saveSettings(); // Save only if explicitly told (e.g., after assigning)
+        this._updateSettingsDisplay(); // Revert button text
     }
 
-    /**
-     * Assigns the pressed key to the action currently being learned.
-     * @param {KeyboardEvent} event
-     */
     _assignShortcut(event) {
         let keyBinding;
-        if (event.code.startsWith('Key') || event.code.startsWith('Digit')) {
+        // Prefer event.code for physical keys, event.key for others like Space, Arrow keys
+        if (event.code.startsWith('Key') || event.code.startsWith('Digit') || event.code.startsWith('Numpad')) {
             keyBinding = event.code;
         } else {
-            keyBinding = event.key;
+            keyBinding = event.key; // Such as " ", "ArrowRight", "Escape"
         }
 
         if (['Shift', 'Control', 'Alt', 'Meta'].includes(keyBinding)) {
-             console.warn("Modifier keys cannot be assigned as shortcuts directly.");
-             this.stopLearning();
+             this._notify("Modifier keys (Shift, Ctrl, Alt, Meta) cannot be assigned as shortcuts directly.", "warning");
+             this.stopLearning(false); // Stop without saving
              return;
         }
+        if (event.code === "Tab") { // Prevent Tab from being learned easily as it shifts focus
+            this._notify("Tab key cannot be assigned as a shortcut.", "warning");
+            this.stopLearning(false);
+            return;
+        }
 
-        console.log(`Assigning key '${keyBinding}' to action '${this.actionToLearn}'`);
-        this.settings.shortcuts[this.actionToLearn] = keyBinding; // Updates the 'shortcuts' map [cite: 1]
-        this.saveSettings(); // Saves the updated map
-        this.stopLearning();
+        // console.log(`Assigning key '${keyBinding}' (Code: ${event.code}, Key: ${event.key}) to action '${this.actionToLearn}'`);
+        this.settings.shortcuts[this.actionToLearn] = keyBinding;
+        this.stopLearning(true); // Stop and save the new assignment
     }
 
-     /** Updates the status indicator element */
      updateStatusIndicator() {
-         if (!this.statusIndicator) {
-             this.statusIndicator = document.getElementById('keyboard-status');
-         }
+         if (!this.statusIndicator) this.statusIndicator = document.getElementById('keyboard-status');
          if (this.statusIndicator) {
-             this.statusIndicator.textContent = `Keyboard: ${this.settings.enabled ? 'Active' : 'Inactive'}`; // Checks 'enabled' flag [cite: 1]
-             this.statusIndicator.className = this.settings.enabled ? 'status-enabled' : 'status-disabled';
+             this.statusIndicator.textContent = `Keyboard: ${this.settings.enabled ? 'Active' : 'Inactive'}`;
+             this.statusIndicator.className = `status-indicator ${this.settings.enabled ? 'status-enabled' : 'status-disabled'}`;
          }
      }
 }
 
-// Create a single instance for the application to use
 const inputControlService = new InputControlService();
+inputControlService.loadSettings(); // Load settings as soon as the script runs
 
-// Load settings as soon as the script runs
-inputControlService.loadSettings();
-
-// Assume showNotification is defined globally (e.g., in main.js)
-// function showNotification(message, type = 'info') { /* ... implementation ... */ }
+// Fallback showGlobalNotification (if main.js one isn't loaded or working)
+// It's better if main.js always provides the primary one.
+if (typeof window.showGlobalNotification !== 'function') {
+    console.warn("input-control.js: window.showGlobalNotification is not defined. Using basic alert fallback.");
+    window.showGlobalNotification = function(message, type = 'info') { // Define it on window if not present
+        alert(`[${type.toUpperCase()}] ${message}`);
+    };
+}
