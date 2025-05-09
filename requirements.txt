@@ -1,8 +1,6 @@
-sounddevice
 numpy
-soundfile
+git+https://github.com/johannmkammiste/modpybassmacos.git@master#egg=modpybass
 flask
 waitress
-mido
-werkzeug
 Flask-Caching
+pywebview
