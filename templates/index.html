@@ -6,9 +6,16 @@
             <li><a href="{{ url_for('setlists_page') }}" class="nav-link">SETLISTS</a></li>
             <li><a href="{{ url_for('songs_page') }}" class="nav-link">SONGS</a></li>
             <li><a href="{{ url_for('settings_page') }}" class="nav-link">SETTINGS</a></li>
+            <li>
+                <button id="exit-app-btn" class="nav-link exit-button">EXIT APPLICATION</button>
+            </li>
         </ul>
     </nav>
 {% endblock %}
 
 {% block content %}
+    <div class="main-index-content">
+        <h1>Backing Track Player</h1>
+        <p>Select an option from the menu to get started.</p>
+        <p class="app-version">Version 1.0.0</p> </div>
 {% endblock %}

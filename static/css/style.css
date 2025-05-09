@@ -86,6 +86,32 @@ body {
     padding: 20px;
 }
 
+/* Styling for the main content area of index.html */
+.main-index-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%; /* Take full height of main-content */
+    text-align: center;
+    color: #bdc3c7;
+}
+.main-index-content h1 {
+    font-size: 2.5rem;
+    color: #f1c40f;
+    margin-bottom: 20px;
+}
+.main-index-content p {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+.main-index-content .app-version {
+    margin-top: 30px;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+}
+
+
 .clock-display {
     position: absolute;
     top: 15px;
@@ -181,7 +207,7 @@ body {
     overflow-y: auto;
 }
 
-.nav-link {
+.nav-link { /* Also applies to the exit button if it has this class */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -198,6 +224,8 @@ body {
     min-height: 70px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     text-align: center;
+    width: 100%; /* Ensure buttons take full width of their li container */
+    cursor: pointer; /* Make it look like a button */
 }
 
 .nav-link:hover {
@@ -206,6 +234,22 @@ body {
     transform: translateX(3px);
     border-color: rgba(241, 196, 15, 0.2);
 }
+
+/* Specific styling for the Exit Button */
+.exit-button {
+    background-color: rgba(192, 57, 43, 0.3); /* Subdued red */
+    color: #e74c3c; /* Brighter red text */
+    border-color: rgba(192, 57, 43, 0.4);
+    margin-top: auto; /* Pushes the exit button to the bottom of the flex container (nav-menu) */
+}
+
+.exit-button:hover {
+    background-color: rgba(231, 76, 60, 0.5); /* Brighter red on hover */
+    color: #ffffff;
+    border-color: rgba(231, 76, 60, 0.6);
+    transform: translateX(3px); /* Keep consistent hover effect */
+}
+
 
 .settings-title {
     color: #f1c40f;
@@ -377,7 +421,7 @@ body {
     padding: 15px 20px;
     overflow-y: auto;
     flex-grow: 1;
-    min-height: 50px; /* Reduced min-height for confirm dialogs */
+    min-height: 50px;
 }
 
 .modal-footer {
@@ -401,7 +445,7 @@ body {
 .modal-button:active { transform: scale(0.97); }
 
 .modal-button.confirm {
-    background-color: #c0392b; /* Darker red for confirm/destructive */
+    background-color: #c0392b;
     color: white;
 }
 .modal-button.confirm:hover { background-color: #e74c3c; }
@@ -415,13 +459,13 @@ body {
 
 /* Styles for the Custom Confirmation Modal */
 .confirm-modal-content {
-    max-width: 450px; /* Smaller width for confirmation dialogs */
+    max-width: 450px;
 }
 
 .confirm-modal-footer {
     display: flex;
-    justify-content: flex-end; /* Align buttons to the right */
-    gap: 10px; /* Space between Yes/No buttons */
+    justify-content: flex-end;
+    gap: 10px;
 }
 /* End Custom Confirmation Modal Styles */
 
@@ -572,7 +616,7 @@ button:disabled,
          overflow-y: visible;
          flex-grow: 0;
      }
-     .nav-link {
+     .nav-link, .exit-button { /* Apply to exit button as well */
          flex: 1 1 auto;
          min-width: 80px;
          text-align: center;
@@ -580,15 +624,17 @@ button:disabled,
          font-size: 14px;
          height: auto;
          min-height: 60px;
-         margin-top: 0 !important;
+         margin-top: 0 !important; /* Override margin-top for exit button */
          transform: none !important;
          letter-spacing: 0.5px;
      }
-     .nav-link:hover, .sidebar .nav-link.active {
+     .nav-link:hover, .sidebar .nav-link.active, .exit-button:hover { /* Apply to exit button hover */
          transform: none !important;
-         background-color: rgba(241, 196, 15, 0.15);
-         color: #f1c40f;
      }
+     .exit-button { /* Specific responsive adjustments for exit button if needed */
+        margin-top: 5px !important; /* Ensure it's part of the flow on mobile */
+     }
+
      .setting-row {
         flex-direction: column;
         align-items: stretch;
@@ -621,7 +667,7 @@ button:disabled,
 }
 
 @media (max-width: 480px) {
-     .nav-link {
+     .nav-link, .exit-button {
          font-size: 12px;
          padding: 10px 5px;
          min-height: 50px;
