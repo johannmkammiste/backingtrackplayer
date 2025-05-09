@@ -2,7 +2,7 @@ import webview
 import threading
 import time # Optional: for a small delay if needed
 from waitress import serve
-from app import app # Your Flask app from app.py
+from app import app # Your Flask app from app2.py
 
 # --- Configuration ---
 HOST = '127.0.0.1'  # Run on localhost
@@ -61,8 +61,3 @@ if __name__ == '__main__':
         print(f"Failed to create or start pywebview window: {e}")
 
     print("pywebview window closed. Application will now exit.")
-
-#sudo apt update
-#sudo apt install -y libgtk-3-dev libwebkit2gtk-4.0-dev
-# Or for newer versions, it might be libwebkit2gtk-4.1-dev
-# sudo apt install -y gir1.2-webkit2-4.0 # or 4.1 for GObject Introspection bindings
